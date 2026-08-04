@@ -1,0 +1,71 @@
+name: Build APK
+
+# Baut bei jedem Push auf main eine installierbare Debug-APK und legt sie
+# als Download-Artefakt ab. Manuell ausloesbar ueber "Run workflow".
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # noetig, damit der Job ein Release anlegen darf
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Signatur-Keystore bereitstellen
+        run: echo "${{ secrets.SIGNING_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/jarvis_signing.p12"
+
+      # VOR dem Bauen: Sprechen Kotlin und der Python-Server dasselbe
+      # Verschluesselungsformat? Der Laptop hat keine Java-Werkzeugkette,
+      # das ist also die einzige Stelle, an der sich das ueberhaupt pruefen
+      # laesst - und sie liegt bewusst VOR dem Bauen, damit bei einem
+      # Formatbruch gar keine APK erst entsteht.
+      - name: Verschluesselungs-Format pruefen
+        run: gradle testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Debug-APK bauen
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/jarvis_signing.p12
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: APK als Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # Die APK unter einem festen "latest"-Release veroeffentlichen, damit
+      # es einen stabilen, direkten Download-Link gibt, der immer die neueste
+      # Version liefert:
+      #   https://github.com/<user>/jarvis-app/releases/latest/download/jarvis.apk
+      - name: APK auf festen Namen kopieren
+        if: github.ref == 'refs/heads/main'
+        run: cp app/build/outputs/apk/debug/app-debug.apk jarvis.apk
+
+      - name: Als "latest"-Release veroeffentlichen
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -R "${{ github.repository }}" --yes --cleanup-tag || true
+          gh release create latest jarvis.apk \
+            -R "${{ github.repository }}" \
+            -t "Jarvis App (neueste Version)" \
+            -n "Automatisch aus dem letzten Stand gebaut."

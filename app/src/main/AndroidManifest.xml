@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Fuer den "Hey Jarvis"-Hintergrunddienst: dauerhafter Dienst mit
+         Mikrofon-Typ (ab Android 14 Pflicht) + sichtbare Benachrichtigung. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Damit das Lauschen einen Handy-Neustart ueberlebt (siehe
+         NeustartEmpfaenger). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Rueckmeldung per Vibration statt Ton: Doreens Handy ist dauerhaft
+         stumm, damit bleiben auch Pieps ueber den Medienkanal unhoerbar.
+         Normale Berechtigung, keine Nachfrage beim Nutzer noetig. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Haelt die CPU wach, solange gelauscht wird. Ein Vordergrunddienst
+         schuetzt nur den Prozess, nicht die Rechenzeit - bei ausgeschaltetem
+         Bildschirm fiel die Weckwort-Erkennung sonst zeitweise aus
+         (Doreen, 31.07.2026). Normale Berechtigung, keine Nachfrage. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- v0.31: Standort mitschicken, damit Empfehlungen unterwegs am
+         richtigen Ort suchen ("egal an welchem Ort ich bin", 04.08.2026).
+         FINE = strassengenau (ihre Entscheidung), COARSE als Rueckfall, wenn
+         sie nur den ungefaehren Ort erlaubt - daraus wird immerhin noch der
+         Stadtteil. Ohne die Erlaubnis geht schlicht kein Ort mit, und alles
+         verhaelt sich wie vor v0.31.
+         BEWUSST NICHT beantragt: ACCESS_BACKGROUND_LOCATION ("immer
+         zulassen"). Die Folge ist eine einzige, verschmerzbare Einschraenkung:
+         Direkt nach einem Handy-Neustart, wenn der Lausch-Dienst von selbst
+         hochfaehrt und die App noch nie offen war, bekommt er keinen Ort.
+         Einmal die App oeffnen genuegt (onResume startet den Dienst ohnehin
+         neu). Dafuer bleibt ihr die deutlich weiter reichende Dauer-Erlaubnis
+         erspart. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Ab Android 14 muss ein Vordergrunddienst, der ortet, das ankuendigen.
+         Der Dienst setzt den Typ zur LAUFZEIT nur dann, wenn die Erlaubnis
+         auch erteilt ist - sonst wuerde startForeground abstuerzen und das
+         Weckwort waere tot (siehe WakeWordService.starteVordergrund). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Jarvis"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.DayNight">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Der "Hey Jarvis"-Lausch-Dienst: laeuft dauerhaft im Hintergrund
+             mit Mikrofon, sichtbar ueber eine Benachrichtigung. -->
+        <service
+            android:name=".WakeWordService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|location" />
+
+        <!-- Faehrt das "Hey Jarvis"-Lauschen nach Handy-Neustart und nach
+             einem App-Update von selbst wieder hoch. Ein App-Update beendete
+             den Dienst bisher stillschweigend. -->
+        <receiver
+            android:name=".NeustartEmpfaenger"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Stellt der System-Kamera eine sichere Ziel-Datei fuer das Foto
+             bereit (volle Aufloesung statt Mini-Vorschaubild). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.jarvis.app.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>
