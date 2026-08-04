@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -131,8 +132,41 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    /**
+     * Haelt die Ursache eines Absturzes fest, damit sie beim naechsten Start
+     * ANGEZEIGT werden kann.
+     *
+     * Anlass (04.08.2026): Beim Senden verschwand die App wortlos. Ein
+     * Absturz in einem Hintergrund-Thread beendet den Prozess sofort - ohne
+     * Meldung, ohne Spur, und ohne Java-Werkzeugkette am Rechner ist er von
+     * aussen nicht zu sehen. Statt weiter zu raten, schreibt die App jetzt
+     * selbst auf, woran sie gestorben ist.
+     */
+    private fun merkeAbstuerze() {
+        val vorheriger = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, fehler ->
+            try {
+                val spur = StringBuilder("${fehler::class.java.simpleName}: ${fehler.message}\n")
+                spur.append("Thread: ${thread.name}\n")
+                fehler.stackTrace.take(8).forEach { spur.append("  bei $it\n") }
+                var ursache = fehler.cause
+                var tiefe = 0
+                while (ursache != null && tiefe < 3) {
+                    spur.append("Ursache: ${ursache::class.java.simpleName}: ${ursache.message}\n")
+                    ursache = ursache.cause
+                    tiefe++
+                }
+                getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+                    .edit().putString("letzter_absturz", spur.toString()).commit()
+            } catch (_: Throwable) {
+            }
+            vorheriger?.uncaughtException(thread, fehler)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        merkeAbstuerze()
         setContentView(R.layout.activity_main)
 
         urlField = findViewById(R.id.serverUrl)
@@ -149,6 +183,13 @@ class MainActivity : AppCompatActivity() {
         urlField.setText(prefs.getString("url", ""))
         keyField.setText(prefs.getString("key", ""))
         e2eField.setText(prefs.getString(Krypto.FELD, ""))
+
+        // Ist die App beim letzten Mal abgestuerzt, steht die Ursache hier -
+        // einmal anzeigen, dann vergessen.
+        prefs.getString("letzter_absturz", "")?.takeIf { it.isNotEmpty() }?.let { spur ->
+            answerView.text = "Beim letzten Versuch ist die App abgestürzt:\n\n$spur"
+            prefs.edit().remove("letzter_absturz").apply()
+        }
 
         // Zugangsdaten standardmaessig ZU. Sie braucht sie nur einmal je
         // Installation, aber sie stehen ganz oben und landen sonst auf jedem
@@ -355,6 +396,16 @@ class MainActivity : AppCompatActivity() {
             answerView.text = "Bitte Server-URL und Schluessel ausfuellen."
             return false
         }
+        // Die Adresse wird hier geprueft, solange wir noch auf dem
+        // Haupt-Thread sind und etwas anzeigen koennen. Frueher fiel ein
+        // fehlendes "https://" erst im Hintergrund-Thread auf - dort beendete
+        // die Ausnahme wortlos die ganze App.
+        if (base.toHttpUrlOrNull() == null) {
+            answerView.text =
+                "Die Server-URL ist unvollständig. Sie muss mit https:// beginnen, " +
+                "zum Beispiel:\nhttps://beispiel-1234.ngrok-free.dev"
+            return false
+        }
         // Der E2E-Schluessel ist FREIWILLIG: leer bedeutet unverschluesselt
         // wie bisher. Ein offensichtlich falscher Wert wird aber sofort
         // gemeldet statt erst beim naechsten Zuruf - eine verschluckte
@@ -457,13 +508,21 @@ class MainActivity : AppCompatActivity() {
         val ort = Standort.text(this)
 
         run {
-            val gestreamt = StreamClient.ask(
-                ctx = this, client = client, base = base, key = key,
-                text = text, audio = audio, cacheDir = cacheDir,
-                blockiereBisGesprochen = false, image = image,
-                standort = ort,
-                onText = { laufend -> runOnUiThread { answerView.text = laufend } },
-            )
+            // Abgesichert, weil dieser Aufruf in einem Hintergrund-Thread
+            // laeuft: Eine Ausnahme, die hier entkommt, beendet die GANZE App
+            // ohne Meldung. Schlaegt der Strom fehl, geht es unten auf dem
+            // klassischen Weg weiter - der zeigt Fehler sichtbar an.
+            val gestreamt = try {
+                StreamClient.ask(
+                    ctx = this, client = client, base = base, key = key,
+                    text = text, audio = audio, cacheDir = cacheDir,
+                    blockiereBisGesprochen = false, image = image,
+                    standort = ort,
+                    onText = { laufend -> runOnUiThread { answerView.text = laufend } },
+                )
+            } catch (e: Throwable) {
+                false
+            }
             if (gestreamt) return
             runOnUiThread { answerView.text = "Sende … (klassisch)" }
         }
@@ -530,8 +589,12 @@ class MainActivity : AppCompatActivity() {
                     }
                     try { Thread.sleep(2500) } catch (_: InterruptedException) {}
                 }
-            } catch (e: Exception) {
-                runOnUiThread { answerView.text = "Fehler: ${e.message}" }
+            } catch (e: Throwable) {
+                // Throwable statt Exception: Auch ein Fehler ausserhalb der
+                // Exception-Familie darf die App nicht wortlos beenden.
+                runOnUiThread {
+                    answerView.text = "Fehler: ${e::class.java.simpleName}: ${e.message}"
+                }
                 return
             }
         }

@@ -176,11 +176,21 @@ object StreamClient {
             else image.asRequestBody("image/jpeg".toMediaType())
         )
 
-        val request = Request.Builder()
-            .url("$base/assistant-stream")
-            .addHeader("ngrok-skip-browser-warning", "true")
-            .post(body.build())
-            .build()
+        // Diese Zeile lag frueher VOR dem try: Bei einer unbrauchbaren
+        // Server-Adresse (etwa ohne "https://") wirft OkHttp hier eine
+        // IllegalArgumentException. Da alles in einem Hintergrund-Thread
+        // laeuft, fing sie niemand auf und Android beendete die App - ohne
+        // jede Meldung. Jetzt wird stattdessen false gemeldet; der Aufrufer
+        // faellt dann auf /assistant zurueck, wo der Fehler sichtbar wird.
+        val request = try {
+            Request.Builder()
+                .url("$base/assistant-stream")
+                .addHeader("ngrok-skip-browser-warning", "true")
+                .post(body.build())
+                .build()
+        } catch (e: Exception) {
+            return false
+        }
 
         val queue = AudioQueue(cacheDir)
         var bloecke = 0
