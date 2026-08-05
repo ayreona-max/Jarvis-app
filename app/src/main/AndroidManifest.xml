@@ -40,6 +40,9 @@
          auch erteilt ist - sonst wuerde startForeground abstuerzen und das
          Weckwort waere tot (siehe WakeWordService.starteVordergrund). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- App-Sperre (Fingerabdruck/Geraete-PIN). Normale Berechtigung, keine
+         Nachfrage beim Nutzer noetig. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
         android:allowBackup="true"

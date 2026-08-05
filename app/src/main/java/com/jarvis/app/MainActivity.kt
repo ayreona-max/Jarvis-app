@@ -103,6 +103,82 @@ class MainActivity : AppCompatActivity() {
     private lateinit var answerView: TextView
     private lateinit var talkButton: Button
 
+    // --- App-Sperre: Fingerabdruck oder Geraete-PIN, unabhaengig von der
+    // Handy-Entsperrung. Schuetzt vor kurzem Zugriff aufs entsperrte Handy
+    // (04.08.2026, Franks Wunsch) - schuetzt NICHT gegen einen abgefangenen
+    // Zugangsschluessel, das war bewusst nicht das Ziel. ---
+    private lateinit var sperrschirm: android.view.View
+
+    /** Bis zu diesem Zeitpunkt (System.currentTimeMillis()) gilt die App als
+     *  entsperrt. Long.MAX_VALUE bedeutet "Sperre wird nicht durchgesetzt"
+     *  (siehe zeigeSperrschirmFallsNoetig). */
+    private var entsperrtBis = 0L
+
+    /** Kurze Gnadenfrist nach erfolgreicher Entsperrung: Wer kurz zu einem
+     *  Messenger wechselt, um einen Schluessel zu kopieren, und dann
+     *  zurueckkommt, soll nicht sofort erneut den Finger auflegen muessen.
+     *  Laenger sollte es nicht sein - das Schutzziel ist genau dieses kurze
+     *  Zeitfenster. */
+    private val SPERR_GNADENFRIST_MS = 60_000L
+
+    /**
+     * Zeigt den Sperrschirm und stoesst die Pruefung an - oder blendet ihn
+     * aus, wenn die Gnadenfrist noch laeuft. Wird bei JEDEM onResume
+     * aufgerufen, auch beim allerersten Start.
+     */
+    private fun zeigeSperrschirmFallsNoetig() {
+        if (System.currentTimeMillis() < entsperrtBis) {
+            sperrschirm.visibility = android.view.View.GONE
+            return
+        }
+        sperrschirm.visibility = android.view.View.VISIBLE
+
+        val manager = androidx.biometric.BiometricManager.from(this)
+        val verfuegbar = manager.canAuthenticate(
+            androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        )
+        if (verfuegbar != androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS) {
+            // Weder Fingerabdruck noch Geraete-PIN eingerichtet: Die Sperre
+            // laesst sich dann technisch nicht durchsetzen. Lieber offen
+            // lassen, als Frank aus seiner eigenen App auszusperren - er
+            // bekommt stattdessen einen Hinweis.
+            sperrschirm.visibility = android.view.View.GONE
+            entsperrtBis = Long.MAX_VALUE
+            answerView.text = "Hinweis: Für die App-Sperre braucht dein Handy einen " +
+                "Fingerabdruck oder eine Geräte-PIN. Ohne das bleibt Jarvis ungesperrt."
+            return
+        }
+
+        val executor = ContextCompat.getMainExecutor(this)
+        val prompt = androidx.biometric.BiometricPrompt(
+            this, executor,
+            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(
+                    result: androidx.biometric.BiometricPrompt.AuthenticationResult
+                ) {
+                    entsperrtBis = System.currentTimeMillis() + SPERR_GNADENFRIST_MS
+                    sperrschirm.visibility = android.view.View.GONE
+                }
+                // onAuthenticationError (z. B. abgebrochen) und
+                // onAuthenticationFailed (falscher Finger) werden bewusst
+                // NICHT behandelt: Der Sperrschirm bleibt einfach stehen,
+                // der Button erlaubt jederzeit einen neuen Versuch.
+            }
+        )
+        // setNegativeButtonText darf NICHT gesetzt werden, wenn
+        // DEVICE_CREDENTIAL erlaubt ist - Android wirft sonst eine
+        // Ausnahme. Der Rueckweg ist hier die System-eigene Abbrechen-Geste.
+        val info = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Jarvis entsperren")
+            .setAllowedAuthenticators(
+                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
+            .build()
+        prompt.authenticate(info)
+    }
+
     // --- Kamera ("Zeigen/Scannen"): System-Kamera macht das Foto in voller
     // Aufloesung in eine FileProvider-Datei, danach wird es verkleinert und
     // an Jarvis geschickt. Eine Frage im Nachrichten-Feld geht mit. ---
@@ -177,6 +253,11 @@ class MainActivity : AppCompatActivity() {
         talkButton = findViewById(R.id.talkButton)
         statusView = findViewById(R.id.wakeStatusView)
         val sendButton = findViewById<Button>(R.id.sendButton)
+
+        sperrschirm = findViewById(R.id.sperrschirm)
+        findViewById<Button>(R.id.entsperrenButton).setOnClickListener {
+            zeigeSperrschirmFallsNoetig()
+        }
 
         // URL und Schluessel merken - nur einmal eintippen.
         val prefs = getSharedPreferences("jarvis", Context.MODE_PRIVATE)
@@ -624,6 +705,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Als ALLERERSTES: die App-Sperre. Alles danach (Postfach-Inhalte,
+        // Statuszeile, Standort) darf erst sichtbar werden, wenn die Pruefung
+        // bestanden ist - sonst blitzen sensible Inhalte kurz auf, bevor der
+        // Sperrschirm draufgelegt wird.
+        zeigeSperrschirmFallsNoetig()
         // SELBSTHEILUNG: Ein App-Update oder ein Neustart des Handys beendet
         // laufende Hintergrunddienste – der Schalter stand danach weiter auf
         // "aktiv", aber es lauschte nichts mehr (genau so am 25.07.2026

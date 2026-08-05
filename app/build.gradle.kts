@@ -17,8 +17,8 @@ android {
         applicationId = "com.jarvis.app"
         minSdk = 26          // Android 8.0 - deckt Doreens Galaxy locker ab
         targetSdk = 34
-        versionCode = 32
-        versionName = "0.32"
+        versionCode = 33
+        versionName = "0.33"
     }
 
     // Ab AGP 8 wird BuildConfig nicht mehr automatisch erzeugt. Wir brauchen
@@ -62,6 +62,10 @@ android {
 
 dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // App-Sperre: Fingerabdruck oder Geraete-PIN beim Oeffnen, unabhaengig
+    // von der Handy-Entsperrung. Schuetzt vor kurzem Zugriff aufs entsperrte
+    // Handy (04.08.2026, Franks Wunsch).
+    implementation("androidx.biometric:biometric:1.1.0")
     // OkHttp fuer den multipart-Upload (Audio-Datei + Formfelder an
     // /assistant). Sehr etabliert, keine Versionskonflikte mit AGP 8.5.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

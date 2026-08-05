@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- FrameLayout statt direkt ScrollView: der Sperrschirm liegt als eigene
+     Ebene OBEN drauf, damit er wirklich alles verdeckt, auch waehrend die
+     ScrollView noch scrollt. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<ScrollView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -175,3 +182,39 @@
             android:paddingBottom="24dp" />
     </LinearLayout>
 </ScrollView>
+
+    <!-- App-Sperre: undurchsichtig, deckt alles ab. Standardmaessig
+         sichtbar - MainActivity blendet sie erst nach erfolgreicher
+         Fingerabdruck-/PIN-Pruefung aus. -->
+    <LinearLayout
+        android:id="@+id/sperrschirm"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="?android:attr/colorBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒"
+            android:textSize="48sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Jarvis ist gesperrt"
+            android:textSize="18sp"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp" />
+
+        <Button
+            android:id="@+id/entsperrenButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Entsperren" />
+    </LinearLayout>
+</FrameLayout>
