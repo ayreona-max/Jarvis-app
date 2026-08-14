@@ -73,6 +73,13 @@ dependencies {
     // geht das EXIF sonst verloren und Etiketten/Dokumente kaemen um 90
     // Grad gedreht bei der Vision-Auswertung an.
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    // WorkManager: wiederkehrender Hintergrundabruf des Postfachs (alle 15
+    // Min.), UNABHAENGIG davon, ob der Weckwort-Dienst gerade laeuft - Frank
+    // laesst "Hey Jarvis" nicht durchgehend an, ohne das kamen zeitgebundene
+    // Nachrichten (z. B. das 5:30-Uhr-Wetter-Briefing) erst an, wenn er die
+    // App zufaellig als naechstes geoeffnet hat (14.08.2026, siehe
+    // PLAN-POSTFACH-HINTERGRUNDABRUF.md). Kein Firebase/Push noetig.
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
     // TensorFlow Lite: fuehrt die openWakeWord-Modelle ("Hey Jarvis") lokal
     // aus - Ersatz fuer Porcupine, dessen kostenloses Konto Picovoice zum
     // 30.06.2026 abgeschafft hat. Kein Konto, kein AccessKey, kein Ton
