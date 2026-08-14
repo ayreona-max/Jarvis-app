@@ -578,41 +578,12 @@ class WakeWordService : Service() {
             while (aktiv) {
                 try {
                     val neue = Postfach.abholen(applicationContext, client, System.currentTimeMillis())
-                    neue.forEach { melde(it) }
+                    neue.forEach { Postfach.benachrichtigen(this, it) }
                 } catch (t: Throwable) {
                     // Ein Netzfehler darf das Lauschen niemals stoeren.
                 }
                 try { Thread.sleep(NACHSEHEN_INTERVALL_MS) } catch (_: InterruptedException) { return@thread }
             }
-        }
-    }
-
-    private fun melde(n: Postfach.Nachricht) {
-        try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val kanalId = "jarvis_nachrichten"
-            if (Build.VERSION.SDK_INT >= 26) {
-                nm.createNotificationChannel(
-                    NotificationChannel(kanalId, "Jarvis meldet sich", NotificationManager.IMPORTANCE_DEFAULT)
-                )
-            }
-            val oeffnen = android.app.PendingIntent.getActivity(
-                this, 0,
-                Intent(this, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            val bau = NotificationCompat.Builder(this, kanalId)
-                .setContentTitle(n.titel)
-                // BEWUSST kein Inhalt - siehe Begruendung oben.
-                .setContentText("In der App öffnen")
-                .setSmallIcon(android.R.drawable.ic_dialog_email)
-                .setContentIntent(oeffnen)
-                .setAutoCancel(true)
-                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            nm.notify(n.id.toInt().coerceAtLeast(2), bau.build())
-        } catch (t: Throwable) {
-            meldeStatus("FEHLER bei der Benachrichtigung: $t")
         }
     }
 

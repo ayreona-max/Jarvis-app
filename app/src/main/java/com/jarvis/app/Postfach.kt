@@ -1,6 +1,12 @@
 package com.jarvis.app
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -195,5 +201,46 @@ object Postfach {
         } catch (_: Exception) {
         }
         return neue
+    }
+
+    /**
+     * Zeigt eine System-Benachrichtigung fuer eine neu abgeholte Nachricht -
+     * genutzt vom Weckwort-Dienst (WakeWordService) UND vom periodischen
+     * Hintergrundabruf (PostfachSyncWorker), deshalb hier statt in einer der
+     * beiden Aufrufer-Klassen (14.08.2026, siehe
+     * PLAN-POSTFACH-HINTERGRUNDABRUF.md).
+     *
+     * WICHTIG - zeigt NUR den Titel, nie den Inhalt: Sie erscheint auf dem
+     * gesperrten Bildschirm, bevor irgendeine App-Sperre greift. Ein
+     * Depotstand oder eine Terminliste hat dort nichts verloren.
+     */
+    fun benachrichtigen(ctx: Context, n: Nachricht) {
+        try {
+            val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val kanalId = "jarvis_nachrichten"
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(
+                    NotificationChannel(kanalId, "Jarvis meldet sich", NotificationManager.IMPORTANCE_DEFAULT)
+                )
+            }
+            val oeffnen = PendingIntent.getActivity(
+                ctx, 0,
+                Intent(ctx, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val bau = NotificationCompat.Builder(ctx, kanalId)
+                .setContentTitle(n.titel)
+                // BEWUSST kein Inhalt - siehe Begruendung oben.
+                .setContentText("In der App öffnen")
+                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setContentIntent(oeffnen)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            nm.notify(n.id.toInt().coerceAtLeast(2), bau.build())
+        } catch (_: Throwable) {
+            // Eine fehlgeschlagene Benachrichtigung darf weder den
+            // Weckwort-Dienst noch den Hintergrundabruf stoppen.
+        }
     }
 }
