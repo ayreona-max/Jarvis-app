@@ -243,6 +243,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         merkeAbstuerze()
+        // Hintergrundabruf des Postfachs anmelden - unabhaengig vom
+        // Weckwort-Dienst, siehe PostfachSyncWorker. KEEP-Policy macht das
+        // hier bei jedem App-Start sicher wiederholbar.
+        PostfachSyncWorker.registriere(this)
         setContentView(R.layout.activity_main)
 
         urlField = findViewById(R.id.serverUrl)

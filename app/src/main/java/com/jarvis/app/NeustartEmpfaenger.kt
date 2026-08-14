@@ -18,7 +18,8 @@ import androidx.core.content.ContextCompat
  *
  * Nur wenn Doreen das Lauschen vorher eingeschaltet hatte (Merker
  * "wake_aktiv"), wird neu gestartet – ein bewusst gestopptes Lauschen
- * bleibt gestoppt.
+ * bleibt gestoppt. Der Postfach-Hintergrundabruf (PostfachSyncWorker)
+ * wird davon UNABHAENGIG immer neu angemeldet (14.08.2026).
  */
 class NeustartEmpfaenger : BroadcastReceiver() {
 
@@ -27,6 +28,12 @@ class NeustartEmpfaenger : BroadcastReceiver() {
         if (aktion != Intent.ACTION_BOOT_COMPLETED &&
             aktion != Intent.ACTION_MY_PACKAGE_REPLACED
         ) return
+
+        // Laeuft IMMER an, unabhaengig vom Weckwort-Dienst - genau der Fall,
+        // der den Hintergrundabruf ueberhaupt noetig macht (Frank laesst
+        // "Hey Jarvis" nicht durchgehend an, siehe
+        // PLAN-POSTFACH-HINTERGRUNDABRUF.md).
+        PostfachSyncWorker.registriere(context)
 
         val prefs = context.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
         if (!prefs.getBoolean("wake_aktiv", false)) return
