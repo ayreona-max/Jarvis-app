@@ -1,7 +1,6 @@
 package com.jarvis.app
 
 import android.content.Context
-import android.animation.ValueAnimator
 import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
@@ -9,6 +8,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.view.Choreographer
 import android.view.View
 import kotlin.math.cos
 import kotlin.math.min
@@ -36,8 +36,21 @@ enum class HudZustand { RUHT, HOERT_ZU, DENKT_NACH, ANTWORTET }
  * (SystemClock.uptimeMillis() - startZeit), nicht aus einem
  * schleifenden 0..1-Animationswert - so kann jeder Zustand seine
  * eigene Geschwindigkeit haben, ohne beim Schleifenende sichtbar zu
- * "springen" (ein Animator mit fester Dauer und mehreren Frequenzen
- * darin haette genau dieses Problem gehabt).
+ * "springen".
+ *
+ * Neuzeichnen laeuft ueber Choreographer statt ValueAnimator (Fund aus
+ * dem Abschluss-Review, 14.08.2026): ein ValueAnimator wird von
+ * Settings.Global.ANIMATOR_DURATION_SCALE beeinflusst (erreichbar ueber
+ * Bedienungshilfen -> Animationen entfernen) - bei Skala 0 haette der
+ * Ring einfach eingefroren, ohne auf setZustand() zu reagieren.
+ * Choreographer ist davon unabhaengig. Ueber onVisibilityAggregated()
+ * an-/abgeschaltet, damit im Hintergrund/mit ausgeschaltetem Bildschirm
+ * kein Akku fuer unsichtbare Frames verbraucht wird.
+ *
+ * Alle Zeichen-Hilfsobjekte (Path, DashPathEffect, RectF, Eckenliste)
+ * werden einmalig als Instanzfelder angelegt statt bei jedem onDraw()
+ * neu zu allozieren - bei ~60fps dauerhaft waere das sonst staendiger
+ * Garbage-Collector-Druck (ebenfalls Fund aus dem Abschluss-Review).
  */
 class HudView @JvmOverloads constructor(
     context: Context,
@@ -46,12 +59,21 @@ class HudView @JvmOverloads constructor(
 
     companion object {
         private const val REF = 240f
+        private const val MITTE = REF / 2f
         private const val FARBE = 0xFF378ADD.toInt()
         private const val PERIODE_RUHT_MS = 3600L
         private const val PERIODE_HOERT_ZU_MS = 500L
         private const val PERIODE_DENKT_NACH_MS = 1200L
         private const val PERIODE_ANTWORTET_MS = 600L
         private const val UEBERGANG_MS = 280L
+        private const val ECKEN_LAENGE = 20f
+        private const val ECKEN_ABSTAND = 14f
+
+        /** Reine Rechenfunktion ohne Android-Abhaengigkeit, deshalb per
+         *  JVM-Unit-Test pruefbar (siehe HudViewPhaseTest.kt) - phase()
+         *  liest nur SystemClock aus und ruft das hier auf. */
+        internal fun phaseVon(vergangenMs: Long, periodeMs: Long): Float =
+            (vergangenMs % periodeMs).toFloat() / periodeMs
     }
 
     private var zustand = HudZustand.RUHT
@@ -69,17 +91,50 @@ class HudView @JvmOverloads constructor(
         color = FARBE
     }
 
-    // Treibt nur das Neuzeichnen an (60fps-Takt) - der animierte Wert
-    // selbst wird nicht benutzt, die eigentliche Phase kommt aus
-    // phase(), siehe Klassenkommentar oben.
-    private val ticker = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 16
-        repeatCount = ValueAnimator.INFINITE
-        addUpdateListener { invalidate() }
+    // --- Wiederverwendete Zeichen-Objekte (siehe Klassenkommentar) -----
+
+    private data class Ecke(val ex: Float, val ey: Float, val dx: Float, val dy: Float)
+    private val ecken = listOf(
+        Ecke(ECKEN_ABSTAND, ECKEN_ABSTAND, 1f, 1f),
+        Ecke(REF - ECKEN_ABSTAND, ECKEN_ABSTAND, -1f, 1f),
+        Ecke(REF - ECKEN_ABSTAND, REF - ECKEN_ABSTAND, -1f, -1f),
+        Ecke(ECKEN_ABSTAND, REF - ECKEN_ABSTAND, 1f, -1f),
+    )
+    private val gestrichelterPfad = Path().apply {
+        addCircle(MITTE, MITTE, 108f, Path.Direction.CW)
+    }
+    private val dashEffect = DashPathEffect(floatArrayOf(2f, 10f), 0f)
+
+    private val hoertZuRect = RectF(MITTE - 30f, MITTE - 30f, MITTE + 30f, MITTE + 30f)
+    private val hoertZuWinkel = floatArrayOf(-90f, 0f, 90f, 180f)
+
+    private val denktNachRect = RectF(MITTE - 37f, MITTE - 37f, MITTE + 37f, MITTE + 37f)
+    private val denktNachDeckkraefte = floatArrayOf(1f, 0.55f, 0.3f)
+
+    private val antwortetBalkenRect = RectF()
+    private val antwortetBasisHoehen = floatArrayOf(10f, 22f, 14f, 30f, 14f)
+    private val antwortetVersaetze = floatArrayOf(0.3f, 1.1f, 0.6f, 2.0f, 0.9f)
+
+    // --- Zeit-getriebene Neuzeichnung -----------------------------------
+
+    private var laeuft = false
+    private val frameCallback = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            invalidate()
+            if (laeuft) Choreographer.getInstance().postFrameCallback(this)
+        }
     }
 
-    init {
-        ticker.start()
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (isVisible) {
+            if (!laeuft) {
+                laeuft = true
+                Choreographer.getInstance().postFrameCallback(frameCallback)
+            }
+        } else {
+            laeuft = false
+        }
     }
 
     /** Wechselt den angezeigten Zustand mit kurzem Ueberblenden statt
@@ -93,7 +148,7 @@ class HudView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        ticker.cancel()
+        laeuft = false
     }
 
     /** Fortlaufende Phase 0f..1f fuer eine gegebene Zykluslaenge - beginnt
@@ -101,7 +156,7 @@ class HudView @JvmOverloads constructor(
      *  Schleifenende (siehe Klassenkommentar). */
     private fun phase(periodeMs: Long): Float {
         val vergangen = SystemClock.uptimeMillis() - startZeit
-        return (vergangen % periodeMs).toFloat() / periodeMs
+        return phaseVon(vergangen, periodeMs)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -131,61 +186,41 @@ class HudView @JvmOverloads constructor(
      *  Klammern, gedrehter gestrichelter Aussenring, Basis-Ring,
      *  Tick-Marken. */
     private fun zeichneChrome(canvas: Canvas) {
-        val mitte = REF / 2f
-
         ringPaint.pathEffect = null
         ringPaint.strokeWidth = 1.5f
         ringPaint.alpha = 255
-        val laenge = 20f
-        val abstand = 14f
-        // Vier Ecken-Klammern (L-Form) wie ein Kamera-Sucher/Fadenkreuz.
-        // Jeder Eintrag: Eckpunkt (ex, ey), Richtung der beiden Schenkel.
-        val ecken = listOf(
-            Triple(abstand, abstand, Pair(1f, 1f)),
-            Triple(REF - abstand, abstand, Pair(-1f, 1f)),
-            Triple(REF - abstand, REF - abstand, Pair(-1f, -1f)),
-            Triple(abstand, REF - abstand, Pair(1f, -1f)),
-        )
-        for ((ex, ey, richtung) in ecken) {
-            val (dx, dy) = richtung
-            canvas.drawLine(ex, ey, ex + dx * laenge, ey, ringPaint)
-            canvas.drawLine(ex, ey, ex, ey + dy * laenge, ringPaint)
+        for (e in ecken) {
+            canvas.drawLine(e.ex, e.ey, e.ex + e.dx * ECKEN_LAENGE, e.ey, ringPaint)
+            canvas.drawLine(e.ex, e.ey, e.ex, e.ey + e.dy * ECKEN_LAENGE, ringPaint)
         }
 
-        // Aeusserer gestrichelter, leicht gedrehter Ring - deutet eine
-        // rotierende aeussere Schicht an (bewusst NICHT selbst animiert,
-        // siehe Design). WICHTIG: als Path statt drawCircle gezeichnet -
-        // Android ignoriert PathEffect (Strichelung) bei drawCircle/
-        // drawOval unter Hardware-Beschleunigung, bei drawPath aber
-        // nicht (bekannte Android-Einschraenkung).
+        // WICHTIG: als Path statt drawCircle gezeichnet - Android
+        // ignoriert PathEffect (Strichelung) bei drawCircle/drawOval
+        // unter Hardware-Beschleunigung, bei drawPath aber nicht
+        // (bekannte Android-Einschraenkung).
         ringPaint.strokeWidth = 1f
         ringPaint.alpha = (255 * 0.5f).toInt()
-        ringPaint.pathEffect = DashPathEffect(floatArrayOf(2f, 10f), 0f)
+        ringPaint.pathEffect = dashEffect
         canvas.save()
-        canvas.rotate(12f, mitte, mitte)
-        val gestrichelterPfad = Path().apply {
-            addCircle(mitte, mitte, 108f, Path.Direction.CW)
-        }
+        canvas.rotate(12f, MITTE, MITTE)
         canvas.drawPath(gestrichelterPfad, ringPaint)
         canvas.restore()
         ringPaint.pathEffect = null
 
-        // Basis-Ring
         ringPaint.strokeWidth = 0.75f
         ringPaint.alpha = (255 * 0.35f).toInt()
-        canvas.drawCircle(mitte, mitte, 98f, ringPaint)
+        canvas.drawCircle(MITTE, MITTE, 98f, ringPaint)
 
-        // Acht Tick-Marken (Kompass-Striche)
         ringPaint.strokeWidth = 1.5f
         ringPaint.alpha = 255
         for (i in 0 until 8) {
             val winkel = Math.toRadians((i * 45).toDouble())
             val innen = 88f
             val aussen = 98f
-            val x1 = mitte + innen * cos(winkel).toFloat()
-            val y1 = mitte + innen * sin(winkel).toFloat()
-            val x2 = mitte + aussen * cos(winkel).toFloat()
-            val y2 = mitte + aussen * sin(winkel).toFloat()
+            val x1 = MITTE + innen * cos(winkel).toFloat()
+            val y1 = MITTE + innen * sin(winkel).toFloat()
+            val x2 = MITTE + aussen * cos(winkel).toFloat()
+            val y2 = MITTE + aussen * sin(winkel).toFloat()
             canvas.drawLine(x1, y1, x2, y2, ringPaint)
         }
     }
@@ -195,66 +230,68 @@ class HudView @JvmOverloads constructor(
      *  Uebergangs, sonst 1. */
     private fun zeichneZustand(canvas: Canvas, z: HudZustand, deckkraft: Float) {
         if (deckkraft <= 0f) return
-        val mitte = REF / 2f
         when (z) {
             HudZustand.RUHT -> {
                 val puls = (sin(phase(PERIODE_RUHT_MS) * 2 * Math.PI).toFloat() + 1f) / 2f
                 ringPaint.strokeWidth = 1f
                 ringPaint.alpha = (255 * (0.5f + puls * 0.2f) * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 40f, ringPaint)
+                canvas.drawCircle(MITTE, MITTE, 40f, ringPaint)
                 ringPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 30f, ringPaint)
+                canvas.drawCircle(MITTE, MITTE, 30f, ringPaint)
                 fuellPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 3f, fuellPaint)
+                canvas.drawCircle(MITTE, MITTE, 3f, fuellPaint)
             }
             HudZustand.HOERT_ZU -> {
                 ringPaint.strokeWidth = 3f
-                val basisWinkel = floatArrayOf(-90f, 0f, 90f, 180f)
-                val rect = RectF(mitte - 30f, mitte - 30f, mitte + 30f, mitte + 30f)
                 val p = phase(PERIODE_HOERT_ZU_MS)
                 for (i in 0 until 4) {
                     // Pseudo-zufaelliges, aber deterministisches Wackeln
                     // je Segment - kein echtes Audio, nur simulierte
                     // Reaktivitaet (bewusste Design-Entscheidung).
                     val wackeln = sin(p * 2 * Math.PI + i * 1.7).toFloat()
-                    val bogenLaenge = 40f + wackeln * 20f
+                    // 45-70 Grad Bogenlaenge laut Design - 57,5 +- 12,5
+                    // trifft die Spanne exakt (Fund aus dem
+                    // Abschluss-Review: die urspruengliche 40 +- 20 lag
+                    // darunter).
+                    val bogenLaenge = 57.5f + wackeln * 12.5f
                     ringPaint.alpha =
                         (255 * (0.6f + 0.4f * kotlin.math.abs(wackeln)) * deckkraft).toInt()
-                    canvas.drawArc(rect, basisWinkel[i], bogenLaenge, false, ringPaint)
+                    canvas.drawArc(hoertZuRect, hoertZuWinkel[i], bogenLaenge, false, ringPaint)
                 }
                 fuellPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 5f, fuellPaint)
+                canvas.drawCircle(MITTE, MITTE, 5f, fuellPaint)
             }
             HudZustand.DENKT_NACH -> {
                 ringPaint.strokeWidth = 3f
                 val drehung = phase(PERIODE_DENKT_NACH_MS) * 360f
-                val deckkraefte = floatArrayOf(1f, 0.55f, 0.3f)
-                val rect = RectF(mitte - 37f, mitte - 37f, mitte + 37f, mitte + 37f)
                 for (i in 0 until 3) {
-                    ringPaint.alpha = (255 * deckkraefte[i] * deckkraft).toInt()
+                    ringPaint.alpha = (255 * denktNachDeckkraefte[i] * deckkraft).toInt()
                     val start = drehung + i * 120f
-                    canvas.drawArc(rect, start, 35f, false, ringPaint)
+                    canvas.drawArc(denktNachRect, start, 35f, false, ringPaint)
                 }
                 fuellPaint.alpha = (255 * 0.6f * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 5f, fuellPaint)
+                canvas.drawCircle(MITTE, MITTE, 5f, fuellPaint)
             }
             HudZustand.ANTWORTET -> {
                 ringPaint.strokeWidth = 1.5f
                 ringPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(mitte, mitte, 40f, ringPaint)
+                canvas.drawCircle(MITTE, MITTE, 40f, ringPaint)
                 ringPaint.strokeWidth = 1f
-                canvas.drawCircle(mitte, mitte, 30f, ringPaint)
+                canvas.drawCircle(MITTE, MITTE, 30f, ringPaint)
 
                 fuellPaint.alpha = (255 * deckkraft).toInt()
-                val basisHoehen = floatArrayOf(10f, 22f, 14f, 30f, 14f)
-                val versaetze = floatArrayOf(0.3f, 1.1f, 0.6f, 2.0f, 0.9f)
                 val p = phase(PERIODE_ANTWORTET_MS)
                 for (i in 0 until 5) {
-                    val wackeln = (sin(p * 2 * Math.PI + versaetze[i]).toFloat() + 1f) / 2f
-                    val hoehe = basisHoehen[i] * (0.5f + wackeln)
-                    val x = mitte - 18f + i * 9f
-                    val rect = RectF(x, mitte - hoehe / 2f, x + 3f, mitte + hoehe / 2f)
-                    canvas.drawRoundRect(rect, 1.5f, 1.5f, fuellPaint)
+                    val wackeln = (sin(p * 2 * Math.PI + antwortetVersaetze[i]).toFloat() + 1f) / 2f
+                    val hoehe = antwortetBasisHoehen[i] * (0.5f + wackeln)
+                    // Fuenf 3 Einheiten breite Balken im Abstand von 9
+                    // Einheiten spannen 39 Einheiten - Mitte des linken
+                    // Rands liegt deshalb bei -19,5, nicht -18 (Fund aus
+                    // dem Abschluss-Review: winziger Rundungsfehler,
+                    // korrigiert fuer echte Symmetrie um die Mitte).
+                    val x = MITTE - 19.5f + i * 9f
+                    antwortetBalkenRect.set(x, MITTE - hoehe / 2f, x + 3f, MITTE + hoehe / 2f)
+                    canvas.drawRoundRect(antwortetBalkenRect, 1.5f, 1.5f, fuellPaint)
                 }
             }
         }

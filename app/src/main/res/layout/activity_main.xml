@@ -38,7 +38,8 @@
             android:layout_width="160dp"
             android:layout_height="160dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:importantForAccessibility="no" />
 
         <!-- Zugangsdaten liegen hinter einem Schalter und sind standardmaessig
              ZU. Sie braucht sie nur einmal je Installation, aber sie stehen
