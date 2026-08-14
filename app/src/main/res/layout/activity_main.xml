@@ -30,6 +30,16 @@
             android:textSize="13sp"
             android:paddingBottom="16dp" />
 
+        <!-- HUD-Gesicht (14.08.2026, siehe PLAN-JARVIS-HUD-GESICHT.md) -
+             zeigt Ruht/Hoert-zu/Denkt-nach/Antwortet, wird von
+             MainActivity ueber hudView.setZustand(...) gesteuert. -->
+        <com.jarvis.app.HudView
+            android:id="@+id/hudView"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp" />
+
         <!-- Zugangsdaten liegen hinter einem Schalter und sind standardmaessig
              ZU. Sie braucht sie nur einmal je Installation, aber sie stehen
              ganz oben und landen auf jedem Screenshot - und Screenshots sind

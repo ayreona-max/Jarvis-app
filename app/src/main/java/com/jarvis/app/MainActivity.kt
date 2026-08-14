@@ -102,6 +102,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textField: EditText
     private lateinit var answerView: TextView
     private lateinit var talkButton: Button
+    private lateinit var hudView: HudView
 
     // --- App-Sperre: Fingerabdruck oder Geraete-PIN, unabhaengig von der
     // Handy-Entsperrung. Schuetzt vor kurzem Zugriff aufs entsperrte Handy
@@ -255,6 +256,7 @@ class MainActivity : AppCompatActivity() {
         textField = findViewById(R.id.messageText)
         answerView = findViewById(R.id.answerView)
         talkButton = findViewById(R.id.talkButton)
+        hudView = findViewById(R.id.hudView)
         statusView = findViewById(R.id.wakeStatusView)
         val sendButton = findViewById<Button>(R.id.sendButton)
 
@@ -563,6 +565,7 @@ class MainActivity : AppCompatActivity() {
             isRecording = true
             talkButton.text = "⏹ Aufnahme läuft – zum Stoppen tippen"
             answerView.text = "Ich höre zu …"
+            hudView.setZustand(HudZustand.HOERT_ZU)
         } catch (e: Exception) {
             answerView.text = "Aufnahme konnte nicht starten: ${e.message}"
             releaseRecorder()
@@ -580,6 +583,7 @@ class MainActivity : AppCompatActivity() {
         }
         talkButton.text = "🎤 Sprechen"
         if (file == null || !file.exists() || file.length() == 0L) {
+            hudView.setZustand(HudZustand.RUHT)
             answerView.text = "Die Aufnahme war leer – bitte nochmal versuchen."
             return
         }
@@ -596,6 +600,10 @@ class MainActivity : AppCompatActivity() {
     // --- Anfrage an den Server ---------------------------------------------
 
     private fun requestJarvis(text: String?, audio: File?, image: File? = null) {
+        // Ein einziger Aufruf hier deckt alle drei Aufrufer ab (Senden-
+        // Knopf, Sprechen-Knopf, Foto) - requestJarvis() ist die
+        // gemeinsame Stelle, durch die jede Anfrage laeuft.
+        runOnUiThread { hudView.setZustand(HudZustand.DENKT_NACH) }
         val base = urlField.text.toString().trim().trimEnd('/')
         val key = keyField.text.toString().trim()
 
@@ -622,12 +630,26 @@ class MainActivity : AppCompatActivity() {
                     text = text, audio = audio, cacheDir = cacheDir,
                     blockiereBisGesprochen = false, image = image,
                     standort = ort,
-                    onText = { laufend -> runOnUiThread { answerView.text = laufend } },
+                    onText = { laufend ->
+                        runOnUiThread {
+                            hudView.setZustand(HudZustand.ANTWORTET)
+                            answerView.text = laufend
+                        }
+                    },
                 )
             } catch (e: Throwable) {
                 false
             }
-            if (gestreamt) return
+            if (gestreamt) {
+                // Bekannte Ungenauigkeit (bewusst akzeptiert, siehe
+                // PLAN-JARVIS-HUD-GESICHT.md): springt zurueck auf RUHT,
+                // sobald der Netzwerk-Strom zu Ende ist - nicht erst,
+                // wenn die AudioQueue fertig abgespielt hat. Fuer eine
+                // exakte Loesung braeuchte StreamClient.AudioQueue einen
+                // eigenen "fertig abgespielt"-Meldeweg.
+                runOnUiThread { hudView.setZustand(HudZustand.RUHT) }
+                return
+            }
             runOnUiThread { answerView.text = "Sende … (klassisch)" }
         }
         // Eine Kennung fuer diese Sende-Aktion - bleibt ueber alle Wiederhol-
@@ -672,15 +694,27 @@ class MainActivity : AppCompatActivity() {
                 client.newCall(request).execute().use { resp ->
                     val respBody = resp.body?.string() ?: ""
                     if (!resp.isSuccessful) {
-                        runOnUiThread { answerView.text = "Fehler ${resp.code}: $respBody" }
+                        runOnUiThread {
+                            hudView.setZustand(HudZustand.RUHT)
+                            answerView.text = "Fehler ${resp.code}: $respBody"
+                        }
                         return
                     }
                     val json = Krypto.auspacken(this, JSONObject(respBody))
                     val answer = json.optString("text", respBody)
                     val audioB64 = if (json.isNull("audio_base64")) null
                                    else json.optString("audio_base64", null)
-                    runOnUiThread { answerView.text = answer }
-                    if (audioB64 != null) playAudio(audioB64)
+                    runOnUiThread {
+                        hudView.setZustand(HudZustand.ANTWORTET)
+                        answerView.text = answer
+                    }
+                    if (audioB64 != null) {
+                        playAudio(audioB64)
+                    } else {
+                        // Keine Sprachausgabe zu dieser Antwort - kein
+                        // Grund, auf ANTWORTET stehen zu bleiben.
+                        runOnUiThread { hudView.setZustand(HudZustand.RUHT) }
+                    }
                 }
                 return  // Erfolg
             } catch (e: IOException) {
@@ -697,12 +731,14 @@ class MainActivity : AppCompatActivity() {
                 // Throwable statt Exception: Auch ein Fehler ausserhalb der
                 // Exception-Familie darf die App nicht wortlos beenden.
                 runOnUiThread {
+                    hudView.setZustand(HudZustand.RUHT)
                     answerView.text = "Fehler: ${e::class.java.simpleName}: ${e.message}"
                 }
                 return
             }
         }
         runOnUiThread {
+            hudView.setZustand(HudZustand.RUHT)
             answerView.text = "Verbindung ließ sich nicht stabil aufbauen: $letzterFehler"
         }
     }
@@ -717,12 +753,23 @@ class MainActivity : AppCompatActivity() {
             player?.release()
             val mp = MediaPlayer()
             mp.setDataSource(tmp.absolutePath)
-            mp.setOnCompletionListener { it.release(); if (player === it) player = null }
+            mp.setOnCompletionListener {
+                it.release()
+                if (player === it) player = null
+                // runOnUiThread ist hier IMMER noetig, unabhaengig davon,
+                // von welchem Thread aus dieser Callback tatsaechlich
+                // feuert (MediaPlayer-Callbacks laufen nur dann sicher
+                // auf dem Haupt-Thread, wenn der aufrufende Thread einen
+                // Looper hat - der thread{}-Hintergrund-Thread hier hat
+                // keinen).
+                runOnUiThread { hudView.setZustand(HudZustand.RUHT) }
+            }
             mp.prepare()
             mp.start()
             player = mp
         } catch (e: Exception) {
             // Antworttext steht ja schon da - Tonausfall ist nicht schlimm.
+            runOnUiThread { hudView.setZustand(HudZustand.RUHT) }
         }
     }
 
