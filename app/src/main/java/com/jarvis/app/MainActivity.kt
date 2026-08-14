@@ -269,6 +269,25 @@ class MainActivity : AppCompatActivity() {
         keyField.setText(prefs.getString("key", ""))
         e2eField.setText(prefs.getString(Krypto.FELD, ""))
 
+        // Benachrichtigungs-Berechtigung fuer den Hintergrundabruf (Postfach-
+        // SyncWorker, ab Android 13 noetig): Bisher wurde POST_NOTIFICATIONS
+        // nur beim Aktivieren von "Hey Jarvis" abgefragt - wer das nie
+        // einschaltet, wurde nie gefragt, und Postfach.benachrichtigen()
+        // lief seither wortlos ins Leere, obwohl der Hintergrundabruf selbst
+        // funktionierte (Fund aus dem Abschluss-Review von
+        // PLAN-POSTFACH-HINTERGRUNDABRUF-UMSETZUNG.md, 14.08.2026). Deshalb
+        // hier einmalig UND unabhaengig vom Weckwort-Knopf fragen - das Flag
+        // sorgt dafuer, dass es wirklich nur einmal im App-Leben passiert,
+        // egal ob erlaubt oder abgelehnt.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED &&
+            !prefs.getBoolean("postfach_benachrichtigung_gefragt", false)
+        ) {
+            prefs.edit().putBoolean("postfach_benachrichtigung_gefragt", true).apply()
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4)
+        }
+
         // Ist die App beim letzten Mal abgestuerzt, steht die Ursache hier -
         // einmal anzeigen, dann vergessen.
         prefs.getString("letzter_absturz", "")?.takeIf { it.isNotEmpty() }?.let { spur ->
