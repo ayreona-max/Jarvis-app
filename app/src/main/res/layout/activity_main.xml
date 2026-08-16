@@ -96,6 +96,7 @@
 
         <Button
             android:id="@+id/sendButton"
+            style="@style/Widget.Jarvis.HudButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Text senden"
@@ -103,33 +104,27 @@
 
         <Button
             android:id="@+id/talkButton"
+            style="@style/Widget.Jarvis.HudButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="🎤 Sprechen"
-            android:textSize="18sp"
-            android:layout_marginTop="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp" />
+            android:layout_marginTop="16dp" />
 
         <Button
             android:id="@+id/cameraButton"
+            style="@style/Widget.Jarvis.HudButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="📷 Zeigen / Scannen"
-            android:textSize="18sp"
-            android:layout_marginTop="8dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp" />
+            android:layout_marginTop="8dp" />
 
         <Button
             android:id="@+id/wakeButton"
+            style="@style/Widget.Jarvis.HudButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🟢 „Hey Jarvis” aktivieren"
-            android:textSize="18sp"
-            android:layout_marginTop="8dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp" />
+            android:text="🟢 &quot;Hey Jarvis&quot; aktivieren"
+            android:layout_marginTop="8dp" />
 
         <!-- v0.31: Standort mitschicken. Bewusst NICHT hinter den
              Zugangsdaten versteckt, sondern gleich sichtbar - sie soll die
