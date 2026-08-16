@@ -74,6 +74,110 @@ class HudView @JvmOverloads constructor(
          *  liest nur SystemClock aus und ruft das hier auf. */
         internal fun phaseVon(vergangenMs: Long, periodeMs: Long): Float =
             (vergangenMs % periodeMs).toFloat() / periodeMs
+
+        // --- Ikosaeder-Kugel-Geometrie (16.08.2026, siehe PLAN-JARVIS-HUD-
+        // KERN-UND-RAND.md) - reine Rechenfunktionen, werden nur EINMAL bei
+        // der View-Konstruktion aufgerufen (siehe kugelPunkte/kugelKanten
+        // weiter unten in der Klasse), NIE pro Frame. ---
+
+        /** Ein Punkt im 3D-Raum - fuer die Kern-Kugel. Eigener winziger
+         *  Werttyp statt drei einzelner Floats, damit die
+         *  Geometrie-Erzeugung lesbar bleibt. */
+        internal data class Vektor3(val x: Float, val y: Float, val z: Float)
+
+        private fun normiert(v: Vektor3): Vektor3 {
+            val laenge = kotlin.math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+            return Vektor3(v.x / laenge, v.y / laenge, v.z / laenge)
+        }
+
+        /** Die zwoelf Eckpunkte eines Ikosaeders (goldener Schnitt), auf
+         *  die Einheitskugel normiert - Ausgangsform fuer die Kern-Kugel. */
+        internal fun ikosaederPunkte(): List<Vektor3> {
+            val phi = (1f + kotlin.math.sqrt(5f)) / 2f
+            return listOf(
+                Vektor3(-1f, phi, 0f), Vektor3(1f, phi, 0f),
+                Vektor3(-1f, -phi, 0f), Vektor3(1f, -phi, 0f),
+                Vektor3(0f, -1f, phi), Vektor3(0f, 1f, phi),
+                Vektor3(0f, -1f, -phi), Vektor3(0f, 1f, -phi),
+                Vektor3(phi, 0f, -1f), Vektor3(phi, 0f, 1f),
+                Vektor3(-phi, 0f, -1f), Vektor3(-phi, 0f, 1f),
+            ).map { normiert(it) }
+        }
+
+        /** Die zwanzig Dreiecksflaechen des Ikosaeders, als Punkt-Indizes
+         *  in die Liste von ikosaederPunkte(). Standard-Ikosaeder-
+         *  Triangulierung. */
+        internal fun ikosaederFlaechen(): List<IntArray> = listOf(
+            intArrayOf(0, 11, 5), intArrayOf(0, 5, 1), intArrayOf(0, 1, 7),
+            intArrayOf(0, 7, 10), intArrayOf(0, 10, 11), intArrayOf(1, 5, 9),
+            intArrayOf(5, 11, 4), intArrayOf(11, 10, 2), intArrayOf(10, 7, 6),
+            intArrayOf(7, 1, 8), intArrayOf(3, 9, 4), intArrayOf(3, 4, 2),
+            intArrayOf(3, 2, 6), intArrayOf(3, 6, 8), intArrayOf(3, 8, 9),
+            intArrayOf(4, 9, 5), intArrayOf(2, 4, 11), intArrayOf(6, 2, 10),
+            intArrayOf(8, 6, 7), intArrayOf(9, 8, 1),
+        )
+
+        /** Unterteilt jede Dreiecksflaeche in vier kleinere (Kantenmitten
+         *  werden neue, auf die Kugel zurueckprojizierte Eckpunkte) - eine
+         *  Anwendung macht aus dem Ikosaeder (12/20) eine feinere Kugel
+         *  (42 Punkte/80 Flaechen), zwei Anwendungen ergeben 162 Punkte/
+         *  320 Flaechen (480 Kanten) - die mit Frank abgestimmte
+         *  "dicht"-Stufe. Wird nur beim Start einmal aufgerufen. */
+        internal fun unterteile(
+            punkte: List<Vektor3>,
+            flaechen: List<IntArray>,
+        ): Pair<List<Vektor3>, List<IntArray>> {
+            val neuePunkte = punkte.toMutableList()
+            val mittelpunktCache = HashMap<Long, Int>()
+
+            fun mittelpunkt(i1: Int, i2: Int): Int {
+                val a = minOf(i1, i2).toLong()
+                val b = maxOf(i1, i2).toLong()
+                val schluessel = a * 100_000L + b
+                mittelpunktCache[schluessel]?.let { return it }
+                val p1 = neuePunkte[i1]
+                val p2 = neuePunkte[i2]
+                val mitte = normiert(
+                    Vektor3((p1.x + p2.x) / 2f, (p1.y + p2.y) / 2f, (p1.z + p2.z) / 2f)
+                )
+                neuePunkte.add(mitte)
+                val index = neuePunkte.size - 1
+                mittelpunktCache[schluessel] = index
+                return index
+            }
+
+            val neueFlaechen = mutableListOf<IntArray>()
+            for (f in flaechen) {
+                val ab = mittelpunkt(f[0], f[1])
+                val bc = mittelpunkt(f[1], f[2])
+                val ca = mittelpunkt(f[2], f[0])
+                neueFlaechen.add(intArrayOf(f[0], ab, ca))
+                neueFlaechen.add(intArrayOf(f[1], bc, ab))
+                neueFlaechen.add(intArrayOf(f[2], ca, bc))
+                neueFlaechen.add(intArrayOf(ab, bc, ca))
+            }
+            return Pair(neuePunkte, neueFlaechen)
+        }
+
+        /** Leitet die eindeutigen Kanten (Punkt-Index-Paare) aus einer
+         *  Liste von Dreiecksflaechen ab - jede Kante taucht in zwei
+         *  benachbarten Flaechen auf, wird hier nur einmal zurueckgegeben. */
+        internal fun kantenAusFlaechen(flaechen: List<IntArray>): List<IntArray> {
+            val gesehen = HashSet<Long>()
+            val kanten = mutableListOf<IntArray>()
+            for (f in flaechen) {
+                val paare = listOf(f[0] to f[1], f[1] to f[2], f[2] to f[0])
+                for ((x, y) in paare) {
+                    val a = minOf(x, y)
+                    val b = maxOf(x, y)
+                    val schluessel = a.toLong() * 100_000L + b.toLong()
+                    if (gesehen.add(schluessel)) {
+                        kanten.add(intArrayOf(a, b))
+                    }
+                }
+            }
+            return kanten
+        }
     }
 
     private var zustand = HudZustand.RUHT
