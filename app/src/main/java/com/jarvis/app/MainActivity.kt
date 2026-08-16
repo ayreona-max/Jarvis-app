@@ -388,8 +388,9 @@ class MainActivity : AppCompatActivity() {
         val wakeButton = findViewById<Button>(R.id.wakeButton)
 
         fun setzeWakeText() {
-            wakeButton.text = if (prefs.getBoolean("wake_aktiv", false))
-                "🔴 „Hey Jarvis” stoppen" else "🟢 „Hey Jarvis” aktivieren"
+            val aktiv = prefs.getBoolean("wake_aktiv", false)
+            wakeButton.text = if (aktiv) "🔴 „Hey Jarvis” stoppen" else "🟢 „Hey Jarvis” aktivieren"
+            wakeButton.isActivated = aktiv
         }
         setzeWakeText()
 
@@ -564,6 +565,7 @@ class MainActivity : AppCompatActivity() {
             audioFile = file
             isRecording = true
             talkButton.text = "⏹ Aufnahme läuft – zum Stoppen tippen"
+            talkButton.isActivated = true
             answerView.text = "Ich höre zu …"
             hudView.setZustand(HudZustand.HOERT_ZU)
         } catch (e: Exception) {
@@ -582,6 +584,7 @@ class MainActivity : AppCompatActivity() {
             releaseRecorder()
         }
         talkButton.text = "🎤 Sprechen"
+        talkButton.isActivated = false
         if (file == null || !file.exists() || file.length() == 0L) {
             hudView.setZustand(HudZustand.RUHT)
             answerView.text = "Die Aufnahme war leer – bitte nochmal versuchen."
