@@ -245,10 +245,6 @@ class HudView @JvmOverloads constructor(
         color = FARBE
         strokeCap = Paint.Cap.ROUND
     }
-    private val fuellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = FARBE
-    }
 
     // --- Wiederverwendete Zeichen-Objekte (siehe Klassenkommentar) -----
 
