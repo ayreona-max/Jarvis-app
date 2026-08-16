@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -177,6 +178,42 @@ class HudView @JvmOverloads constructor(
                 }
             }
             return kanten
+        }
+
+        /** Ein projizierter 2D-Bildschirmpunkt samt Tiefenwert (nach
+         *  Drehung, vor Verschiebung/Skalierung ist er bereits
+         *  eingerechnet) - der Tiefenwert steuert in Task 3 die
+         *  Deckkraft beim Zeichnen (vorne heller als hinten). */
+        internal data class ProjizierterPunkt(val x: Float, val y: Float, val tiefe: Float)
+
+        /** Dreht einen Punkt um die Y-Achse (drehYRad) und danach um die
+         *  X-Achse (drehXRad), projiziert ihn dann orthografisch auf den
+         *  Bildschirm (Mittelpunkt mitteX/mitteY, Massstab skala). Reine
+         *  Rechenfunktion zur Absicherung der Formel per Unit-Test - die
+         *  eigentliche Zeichenschleife in zeichneZustand() (Task 3) rechnet
+         *  dieselbe Formel direkt auf vorbereiteten FloatArrays nach, statt
+         *  bei 162 Punkten pro Frame 162 ProjizierterPunkt-Objekte
+         *  anzulegen (siehe Global Constraints). */
+        internal fun gedrehtUndProjiziert(
+            v: Vektor3,
+            drehYRad: Float,
+            drehXRad: Float,
+            mitteX: Float,
+            mitteY: Float,
+            skala: Float,
+        ): ProjizierterPunkt {
+            val x1 = v.x * cos(drehYRad) + v.z * sin(drehYRad)
+            val z1 = -v.x * sin(drehYRad) + v.z * cos(drehYRad)
+            val y2 = v.y * cos(drehXRad) - z1 * sin(drehXRad)
+            val z2 = v.y * sin(drehXRad) + z1 * cos(drehXRad)
+            return ProjizierterPunkt(mitteX + x1 * skala, mitteY + y2 * skala, z2)
+        }
+
+        /** Puls-Faktor um 1 herum (1-staerke bis 1+staerke) fuer das
+         *  "Atmen" der Kugel-Groesse je Zustand. */
+        internal fun pulsFaktor(vergangenMs: Long, pulsTempo: Float, pulsStaerke: Float): Float {
+            val sekunden = vergangenMs / 1000f
+            return 1f + sin(sekunden * pulsTempo * 2f * PI.toFloat()) * pulsStaerke
         }
     }
 
