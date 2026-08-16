@@ -1,5 +1,6 @@
 package com.jarvis.app
 
+import com.jarvis.app.HudView.Companion.Vektor3
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,7 +16,7 @@ class HudViewProjektionTest {
     @Test
     fun punktImUrsprungLandetAufDerBildschirmmitte() {
         val p = HudView.gedrehtUndProjiziert(
-            HudView.Vektor3(0f, 0f, 0f), drehYRad = 0f, drehXRad = 0f,
+            Vektor3(0f, 0f, 0f), drehYRad = 0f, drehXRad = 0f,
             mitteX = 120f, mitteY = 120f, skala = 46f,
         )
         assertEquals(120f, p.x, 0.001f)
@@ -25,7 +26,7 @@ class HudViewProjektionTest {
     @Test
     fun ungedrehterPunktWirdNurSkaliertUndVerschoben() {
         val p = HudView.gedrehtUndProjiziert(
-            HudView.Vektor3(1f, 0f, 0f), drehYRad = 0f, drehXRad = 0f,
+            Vektor3(1f, 0f, 0f), drehYRad = 0f, drehXRad = 0f,
             mitteX = 120f, mitteY = 120f, skala = 46f,
         )
         assertEquals(166f, p.x, 0.001f)
@@ -34,7 +35,7 @@ class HudViewProjektionTest {
 
     @Test
     fun volleUmdrehungLandetWiederAufDemStartpunkt() {
-        val start = HudView.Vektor3(1f, 0.3f, -0.5f)
+        val start = Vektor3(1f, 0.3f, -0.5f)
         val p = HudView.gedrehtUndProjiziert(
             start, drehYRad = (2.0 * PI).toFloat(), drehXRad = 0f,
             mitteX = 0f, mitteY = 0f, skala = 1f,
