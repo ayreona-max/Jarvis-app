@@ -67,7 +67,7 @@ class HudViewPhaseTest {
         // Original-Konstanten private im companion object von HudView
         // liegen - der Test soll die realen Zustands-Perioden verwenden,
         // nicht willkuerliche Zahlen.
-        private const val PERIODE_HOERT_ZU_MS = 500L
-        private const val PERIODE_DENKT_NACH_MS = 1200L
+        private const val PERIODE_HOERT_ZU_MS = 2600L
+        private const val PERIODE_DENKT_NACH_MS = 1400L
     }
 }

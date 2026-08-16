@@ -5,7 +5,6 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.Choreographer
@@ -23,11 +22,13 @@ import kotlin.math.sin
 enum class HudZustand { RUHT, HOERT_ZU, DENKT_NACH, ANTWORTET }
 
 /**
- * Ein Iron-Man/JARVIS-artiges HUD: Ring mit Tick-Marken und Ecken-
- * Klammern, das je nach HudZustand unterschiedlich animiert. Zeichnet
- * sich komplett selbst per Canvas - keine Bilddateien, keine
- * Animationsbibliothek (14.08.2026, siehe PLAN-JARVIS-HUD-GESICHT.md,
- * Abschnitt "Architektur").
+ * Ein Iron-Man/JARVIS-artiges HUD: Ring mit Tick-Marken und einer
+ * rotierenden, pulsierenden Kugel im Kern, das je nach HudZustand
+ * unterschiedlich animiert. Zeichnet sich komplett selbst per Canvas -
+ * keine Bilddateien, keine Animationsbibliothek (14.08.2026, siehe
+ * PLAN-JARVIS-HUD-GESICHT.md, Abschnitt "Architektur"; Kern-Kugel und
+ * glatter Aussenrand seit 16.08.2026, siehe PLAN-JARVIS-HUD-KERN-UND-
+ * RAND.md).
  *
  * Geometrie ist auf eine 240x240-Referenzflaeche bezogen (wie im
  * Mockup aus dem Brainstorming) und wird in onDraw() auf die
@@ -48,10 +49,12 @@ enum class HudZustand { RUHT, HOERT_ZU, DENKT_NACH, ANTWORTET }
  * an-/abgeschaltet, damit im Hintergrund/mit ausgeschaltetem Bildschirm
  * kein Akku fuer unsichtbare Frames verbraucht wird.
  *
- * Alle Zeichen-Hilfsobjekte (Path, DashPathEffect, RectF, Eckenliste)
- * werden einmalig als Instanzfelder angelegt statt bei jedem onDraw()
- * neu zu allozieren - bei ~60fps dauerhaft waere das sonst staendiger
- * Garbage-Collector-Druck (ebenfalls Fund aus dem Abschluss-Review).
+ * Alle Zeichen-Hilfsobjekte (Path, DashPathEffect, die Kugel-Geometrie
+ * aus Punkten/Kanten und ihre drei Projektions-FloatArrays) werden
+ * einmalig als Instanzfelder angelegt statt bei jedem onDraw() neu zu
+ * allozieren - bei ~60fps dauerhaft waere das sonst staendiger
+ * Garbage-Collector-Druck (Fund aus dem Abschluss-Review vom
+ * 14.08.2026, seit 16.08.2026 auch fuer die 162 Kugel-Punkte beachtet).
  */
 class HudView @JvmOverloads constructor(
     context: Context,
@@ -62,13 +65,10 @@ class HudView @JvmOverloads constructor(
         private const val REF = 240f
         private const val MITTE = REF / 2f
         private const val FARBE = 0xFF378ADD.toInt()
-        private const val PERIODE_RUHT_MS = 3600L
-        private const val PERIODE_HOERT_ZU_MS = 500L
-        private const val PERIODE_DENKT_NACH_MS = 1200L
-        private const val PERIODE_ANTWORTET_MS = 600L
         private const val UEBERGANG_MS = 280L
-        private const val ECKEN_LAENGE = 20f
-        private const val ECKEN_ABSTAND = 14f
+        private const val AUSSENRAND_RADIUS = 112f
+        private const val KUGEL_GRUND_RADIUS = 46f
+        private const val KUGEL_KIPPWINKEL_RAD = 0.35f
 
         /** Reine Rechenfunktion ohne Android-Abhaengigkeit, deshalb per
          *  JVM-Unit-Test pruefbar (siehe HudViewPhaseTest.kt) - phase()
@@ -215,6 +215,24 @@ class HudView @JvmOverloads constructor(
             val sekunden = vergangenMs / 1000f
             return 1f + sin(sekunden * pulsTempo * 2f * PI.toFloat()) * pulsStaerke
         }
+
+        /** Richtwerte je Zustand fuer die Kern-Kugel - Umlaufdauer,
+         *  Puls-Staerke/-Tempo, Grund-Deckkraft. Werte 1:1 aus der mit
+         *  Frank abgestimmten Vorschau uebernommen (siehe
+         *  PLAN-JARVIS-HUD-KERN-UND-RAND.md, Abschnitt "Kern (Kugel)"). */
+        internal data class KugelZustandsWerte(
+            val periodeMs: Long,
+            val pulsStaerke: Float,
+            val pulsTempo: Float,
+            val deckkraft: Float,
+        )
+
+        private val KUGEL_WERTE = mapOf(
+            HudZustand.RUHT to KugelZustandsWerte(5200L, 0.06f, 1.0f, 0.55f),
+            HudZustand.HOERT_ZU to KugelZustandsWerte(2600L, 0.10f, 2.4f, 0.75f),
+            HudZustand.DENKT_NACH to KugelZustandsWerte(1400L, 0.05f, 1.6f, 0.85f),
+            HudZustand.ANTWORTET to KugelZustandsWerte(1900L, 0.13f, 2.0f, 1.0f),
+        )
     }
 
     private var zustand = HudZustand.RUHT
@@ -234,27 +252,29 @@ class HudView @JvmOverloads constructor(
 
     // --- Wiederverwendete Zeichen-Objekte (siehe Klassenkommentar) -----
 
-    private data class Ecke(val ex: Float, val ey: Float, val dx: Float, val dy: Float)
-    private val ecken = listOf(
-        Ecke(ECKEN_ABSTAND, ECKEN_ABSTAND, 1f, 1f),
-        Ecke(REF - ECKEN_ABSTAND, ECKEN_ABSTAND, -1f, 1f),
-        Ecke(REF - ECKEN_ABSTAND, REF - ECKEN_ABSTAND, -1f, -1f),
-        Ecke(ECKEN_ABSTAND, REF - ECKEN_ABSTAND, 1f, -1f),
-    )
     private val gestrichelterPfad = Path().apply {
         addCircle(MITTE, MITTE, 108f, Path.Direction.CW)
     }
     private val dashEffect = DashPathEffect(floatArrayOf(2f, 10f), 0f)
 
-    private val hoertZuRect = RectF(MITTE - 30f, MITTE - 30f, MITTE + 30f, MITTE + 30f)
-    private val hoertZuWinkel = floatArrayOf(-90f, 0f, 90f, 180f)
+    // --- HUD-Kern-Kugel (16.08.2026, siehe PLAN-JARVIS-HUD-KERN-UND-
+    // RAND.md) - Geometrie wird HIER einmalig bei der View-Konstruktion
+    // berechnet (zwei Unterteilungen eines Ikosaeders -> 162 Punkte/480
+    // Kanten), NICHT in onDraw()/zeichneZustand(). Die drei FloatArrays
+    // darunter sind selbst nur einmal angelegt, werden aber jeden Frame
+    // neu befuellt - vermeidet die Objekt-Allokation pro Frame, die der
+    // Abschluss-Review vom 14.08.2026 als Fund markiert hatte. ---
 
-    private val denktNachRect = RectF(MITTE - 37f, MITTE - 37f, MITTE + 37f, MITTE + 37f)
-    private val denktNachDeckkraefte = floatArrayOf(1f, 0.55f, 0.3f)
-
-    private val antwortetBalkenRect = RectF()
-    private val antwortetBasisHoehen = floatArrayOf(10f, 22f, 14f, 30f, 14f)
-    private val antwortetVersaetze = floatArrayOf(0.3f, 1.1f, 0.6f, 2.0f, 0.9f)
+    private val kugelGeometrie: Pair<List<Vektor3>, List<IntArray>> = run {
+        val erste = unterteile(ikosaederPunkte(), ikosaederFlaechen())
+        val zweite = unterteile(erste.first, erste.second)
+        Pair(zweite.first, kantenAusFlaechen(zweite.second))
+    }
+    private val kugelPunkte: List<Vektor3> = kugelGeometrie.first
+    private val kugelKanten: List<IntArray> = kugelGeometrie.second
+    private val kugelProjX = FloatArray(kugelPunkte.size)
+    private val kugelProjY = FloatArray(kugelPunkte.size)
+    private val kugelProjZ = FloatArray(kugelPunkte.size)
 
     // --- Zeit-getriebene Neuzeichnung -----------------------------------
 
@@ -323,17 +343,14 @@ class HudView @JvmOverloads constructor(
         canvas.restore()
     }
 
-    /** Chrome, die in allen vier Zustaenden gleich aussieht: Ecken-
-     *  Klammern, gedrehter gestrichelter Aussenring, Basis-Ring,
+    /** Chrome, die in allen vier Zustaenden gleich aussieht: glatter
+     *  Aussenrand, gedrehter gestrichelter Aussenring, Basis-Ring,
      *  Tick-Marken. */
     private fun zeichneChrome(canvas: Canvas) {
         ringPaint.pathEffect = null
         ringPaint.strokeWidth = 1.5f
         ringPaint.alpha = 255
-        for (e in ecken) {
-            canvas.drawLine(e.ex, e.ey, e.ex + e.dx * ECKEN_LAENGE, e.ey, ringPaint)
-            canvas.drawLine(e.ex, e.ey, e.ex, e.ey + e.dy * ECKEN_LAENGE, ringPaint)
-        }
+        canvas.drawCircle(MITTE, MITTE, AUSSENRAND_RADIUS, ringPaint)
 
         // WICHTIG: als Path statt drawCircle gezeichnet - Android
         // ignoriert PathEffect (Strichelung) bei drawCircle/drawOval
@@ -366,75 +383,46 @@ class HudView @JvmOverloads constructor(
         }
     }
 
-    /** Zeichnet die zustandsabhaengigen Elemente (Segmente/Balken/Punkt)
-     *  mit der gegebenen Deckkraft - deckkraft < 1 waehrend eines
-     *  Uebergangs, sonst 1. */
+    /** Zeichnet die HUD-Kern-Kugel mit der gegebenen Deckkraft - deckkraft
+     *  < 1 waehrend eines Uebergangs, sonst 1. Ersetzt seit 16.08.2026 die
+     *  vier vorher unterschiedlichen Zustandsformen (siehe PLAN-JARVIS-
+     *  HUD-KERN-UND-RAND.md) - die vier Zustaende unterscheiden sich jetzt
+     *  nur noch ueber KUGEL_WERTE (Tempo/Puls/Deckkraft), nicht mehr ueber
+     *  unterschiedlichen Zeichen-Code. Rechnet die Dreh-/Projektions-
+     *  Formel bewusst direkt auf kugelProjX/Y/Z nach statt
+     *  gedrehtUndProjiziert() 162-mal aufzurufen (siehe Global
+     *  Constraints - keine Objekt-Allokation pro Frame). */
     private fun zeichneZustand(canvas: Canvas, z: HudZustand, deckkraft: Float) {
         if (deckkraft <= 0f) return
-        when (z) {
-            HudZustand.RUHT -> {
-                val puls = (sin(phase(PERIODE_RUHT_MS) * 2 * Math.PI).toFloat() + 1f) / 2f
-                ringPaint.strokeWidth = 1f
-                ringPaint.alpha = (255 * (0.5f + puls * 0.2f) * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 40f, ringPaint)
-                ringPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 30f, ringPaint)
-                fuellPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 3f, fuellPaint)
-            }
-            HudZustand.HOERT_ZU -> {
-                ringPaint.strokeWidth = 3f
-                val p = phase(PERIODE_HOERT_ZU_MS)
-                for (i in 0 until 4) {
-                    // Pseudo-zufaelliges, aber deterministisches Wackeln
-                    // je Segment - kein echtes Audio, nur simulierte
-                    // Reaktivitaet (bewusste Design-Entscheidung).
-                    val wackeln = sin(p * 2 * Math.PI + i * 1.7).toFloat()
-                    // 45-70 Grad Bogenlaenge laut Design - 57,5 +- 12,5
-                    // trifft die Spanne exakt (Fund aus dem
-                    // Abschluss-Review: die urspruengliche 40 +- 20 lag
-                    // darunter).
-                    val bogenLaenge = 57.5f + wackeln * 12.5f
-                    ringPaint.alpha =
-                        (255 * (0.6f + 0.4f * kotlin.math.abs(wackeln)) * deckkraft).toInt()
-                    canvas.drawArc(hoertZuRect, hoertZuWinkel[i], bogenLaenge, false, ringPaint)
-                }
-                fuellPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 5f, fuellPaint)
-            }
-            HudZustand.DENKT_NACH -> {
-                ringPaint.strokeWidth = 3f
-                val drehung = phase(PERIODE_DENKT_NACH_MS) * 360f
-                for (i in 0 until 3) {
-                    ringPaint.alpha = (255 * denktNachDeckkraefte[i] * deckkraft).toInt()
-                    val start = drehung + i * 120f
-                    canvas.drawArc(denktNachRect, start, 35f, false, ringPaint)
-                }
-                fuellPaint.alpha = (255 * 0.6f * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 5f, fuellPaint)
-            }
-            HudZustand.ANTWORTET -> {
-                ringPaint.strokeWidth = 1.5f
-                ringPaint.alpha = (255 * deckkraft).toInt()
-                canvas.drawCircle(MITTE, MITTE, 40f, ringPaint)
-                ringPaint.strokeWidth = 1f
-                canvas.drawCircle(MITTE, MITTE, 30f, ringPaint)
+        val werte = KUGEL_WERTE.getValue(z)
+        val vergangenMs = SystemClock.uptimeMillis() - startZeit
+        val drehYRad = phase(werte.periodeMs) * 2f * PI.toFloat()
+        val puls = pulsFaktor(vergangenMs, werte.pulsTempo, werte.pulsStaerke)
+        val skala = KUGEL_GRUND_RADIUS * puls
 
-                fuellPaint.alpha = (255 * deckkraft).toInt()
-                val p = phase(PERIODE_ANTWORTET_MS)
-                for (i in 0 until 5) {
-                    val wackeln = (sin(p * 2 * Math.PI + antwortetVersaetze[i]).toFloat() + 1f) / 2f
-                    val hoehe = antwortetBasisHoehen[i] * (0.5f + wackeln)
-                    // Fuenf 3 Einheiten breite Balken im Abstand von 9
-                    // Einheiten spannen 39 Einheiten - Mitte des linken
-                    // Rands liegt deshalb bei -19,5, nicht -18 (Fund aus
-                    // dem Abschluss-Review: winziger Rundungsfehler,
-                    // korrigiert fuer echte Symmetrie um die Mitte).
-                    val x = MITTE - 19.5f + i * 9f
-                    antwortetBalkenRect.set(x, MITTE - hoehe / 2f, x + 3f, MITTE + hoehe / 2f)
-                    canvas.drawRoundRect(antwortetBalkenRect, 1.5f, 1.5f, fuellPaint)
-                }
-            }
+        val cosDreh = cos(drehYRad)
+        val sinDreh = sin(drehYRad)
+        val cosKipp = cos(KUGEL_KIPPWINKEL_RAD)
+        val sinKipp = sin(KUGEL_KIPPWINKEL_RAD)
+        for (i in kugelPunkte.indices) {
+            val v = kugelPunkte[i]
+            val x1 = v.x * cosDreh + v.z * sinDreh
+            val z1 = -v.x * sinDreh + v.z * cosDreh
+            val y2 = v.y * cosKipp - z1 * sinKipp
+            val z2 = v.y * sinKipp + z1 * cosKipp
+            kugelProjX[i] = MITTE + x1 * skala
+            kugelProjY[i] = MITTE + y2 * skala
+            kugelProjZ[i] = z2
+        }
+
+        ringPaint.strokeWidth = 1f
+        for (kante in kugelKanten) {
+            val a = kante[0]
+            val b = kante[1]
+            val tiefe = (kugelProjZ[a] + kugelProjZ[b]) / 2f
+            val alpha = werte.deckkraft * (0.45f + 0.55f * ((tiefe + 1f) / 2f)) * deckkraft
+            ringPaint.alpha = (255 * alpha.coerceIn(0f, 1f)).toInt()
+            canvas.drawLine(kugelProjX[a], kugelProjY[a], kugelProjX[b], kugelProjY[b], ringPaint)
         }
     }
 }
