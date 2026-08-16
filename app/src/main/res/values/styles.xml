@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Einheitlicher Stil fuer sendButton/talkButton/cameraButton/
+         wakeButton - buendelt Hintergrund, Textfarbe, Innenabstand,
+         Textgroesse, damit alle vier gleich aussehen (16.08.2026,
+         siehe PLAN-JARVIS-APP-BUTTONS.md). stateListAnimator/elevation
+         auf 0, sonst legt AppCompat einen Schatten beim Draufdruecken
+         drueber, der zum flachen HUD-Look nicht passt. -->
+    <style name="Widget.Jarvis.HudButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/button_hud_background</item>
+        <item name="android:textColor">@color/jarvis_button_text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+</resources>

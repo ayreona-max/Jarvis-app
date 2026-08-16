@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Akzentfarbe fuer die App-weite HUD-Optik - identisch zu
+         HudView.FARBE (HudView.kt), damit Buttons und Ring farblich
+         zusammenpassen (16.08.2026, siehe PLAN-JARVIS-APP-BUTTONS.md). -->
+    <color name="jarvis_accent">#FF378ADD</color>
+    <color name="jarvis_accent_bright">#FF6BAFEF</color>
+    <!-- Fester dunkler Untergrund - bewusst NICHT vom System-Theme
+         abhaengig, damit der Outline-Look auf hellem und dunklem
+         Standard-Hintergrund gleich aussieht. -->
+    <color name="jarvis_button_fill">#FF14283A</color>
+    <color name="jarvis_button_fill_activated">#FF1F4566</color>
+    <color name="jarvis_button_text">#FFEAF3FC</color>
+    <color name="jarvis_button_ripple">#66378ADD</color>
+</resources>
