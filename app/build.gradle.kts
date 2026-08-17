@@ -11,7 +11,11 @@ val stableKeystorePath: String? = System.getenv("SIGNING_KEYSTORE_PATH")
 
 android {
     namespace = "com.jarvis.app"
-    compileSdk = 34
+    // 36 statt 34: androidx.health.connect:connect-client:1.1.0 (siehe
+    // dependencies unten) verlangt compileSdk >= 36 und AGP >= 8.9.1 (siehe
+    // build.gradle.kts) - erster echter Cloud-Build 17.08.2026 schlug mit
+    // 34/8.5.2 fehl.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.jarvis.app"

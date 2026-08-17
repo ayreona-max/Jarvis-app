@@ -25,7 +25,9 @@ jobs:
       - name: Gradle einrichten
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          # 8.11.1 statt 8.9: AGP 8.9.1 (siehe build.gradle.kts) verlangt
+          # mindestens Gradle 8.11.1.
+          gradle-version: '8.11.1'
 
       - name: Signatur-Keystore bereitstellen
         run: echo "${{ secrets.SIGNING_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/jarvis_signing.p12"
