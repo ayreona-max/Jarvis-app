@@ -106,6 +106,14 @@ dependencies {
     // Test prueft gegen ein Chiffrat aus crypto_utils.py, dass beide Seiten
     // dasselbe Format sprechen - BEVOR eine APK entsteht.
     testImplementation("junit:junit:4.13.2")
+    // Echte org.json-Implementierung NUR fuer die Unit-Tests: im
+    // testDebugUnitTest-Klassenpfad liegt android.jar nur als Stub, dessen
+    // org.json-Methoden absichtlich RuntimeException("Stub!") werfen. Ohne
+    // das scheitert FitnessAggregationTest.baueSyncPayloadRundetAuf... (der
+    // einzige Test, der org.json anfasst - die anderen pruefen reine
+    // LocalDate-/Rechenlogik). Aendert nichts am App-Verhalten: auf dem
+    // Handy liefert Android selbst die echte org.json-Implementierung.
+    testImplementation("org.json:json:20240303")
 }
 
 
