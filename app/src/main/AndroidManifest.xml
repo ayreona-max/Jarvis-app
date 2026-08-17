@@ -57,6 +57,12 @@
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
     <uses-permission android:name="android.permission.health.READ_ELEVATION_GAINED" />
+    <!-- Fuer FitnessSyncWorker (Hintergrund-Sync, WorkManager): manche
+         Health-Connect-Versionen brechen Lese-Zugriffe ohne dieses Recht mit
+         einer SecurityException ab, sobald die App nicht im Vordergrund ist.
+         Opportunistisch angefragt (siehe Fitness.erbetenBerechtigungen) -
+         NICHT Teil der sieben Pass/Fail-Rechte. -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
 
     <application
         android:allowBackup="true"
@@ -72,6 +78,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Health Connect verlangt fuer das Hintergrund-Leserecht eine
+             Begruendungs-Activity, die es dem Nutzer im System-UI anzeigen
+             kann (Einstellungen > Health Connect > App-Berechtigungen). Zeigt
+             einfach MainActivity - ein eigener Bildschirm ist dafuer nicht
+             noetig. -->
+        <activity-alias
+            android:name=".FitnessBerechtigungsBegruendung"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Der "Hey Jarvis"-Lausch-Dienst: laeuft dauerhaft im Hintergrund
              mit Mikrofon, sichtbar ueber eine Benachrichtigung. -->

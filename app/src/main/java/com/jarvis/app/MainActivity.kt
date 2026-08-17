@@ -21,6 +21,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.lifecycleScope
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
@@ -211,8 +213,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    // Wird die Berechtigung gerade erst erteilt, muss nicht bis zum naechsten
+    // taeglichen WorkManager-Lauf gewartet werden - ein sofortiger
+    // OneTimeWorkRequest holt den ersten Sync gleich nach. Sind nicht alle
+    // sieben noetigen Rechte dabei (z.B. nur ein Teil erlaubt), passiert
+    // nichts - der naechste periodische Lauf prueft erneut, siehe
+    // Fitness.hatAlleBerechtigungen.
     private val fitnessBerechtigungsLauncher =
-        registerForActivityResult(Fitness.berechtigungsVertrag()) { /* Ergebnis wird beim naechsten Sync-Versuch neu geprueft, siehe Fitness.hatAlleBerechtigungen */ }
+        registerForActivityResult(Fitness.berechtigungsVertrag()) { erteilte ->
+            if (erteilte.containsAll(Fitness.benoetigteBerechtigungen())) {
+                WorkManager.getInstance(this).enqueue(
+                    OneTimeWorkRequestBuilder<FitnessSyncWorker>().build()
+                )
+            }
+        }
 
     /**
      * Haelt die Ursache eines Absturzes fest, damit sie beim naechsten Start
@@ -255,8 +269,14 @@ class MainActivity : AppCompatActivity() {
         PostfachSyncWorker.registriere(this)
         FitnessSyncWorker.registriere(this)
         lifecycleScope.launch {
-            if (Fitness.verfuegbar(this@MainActivity) && !Fitness.hatAlleBerechtigungen(this@MainActivity)) {
-                fitnessBerechtigungsLauncher.launch(Fitness.benoetigteBerechtigungen())
+            try {
+                if (Fitness.verfuegbar(this@MainActivity) && !Fitness.hatAlleBerechtigungen(this@MainActivity)) {
+                    fitnessBerechtigungsLauncher.launch(Fitness.erbetenBerechtigungen())
+                }
+            } catch (_: Exception) {
+                // Optionales Feature - darf den App-Start nie zum Absturz bringen
+                // (z.B. RemoteException waehrend eines Health-Connect-Modul-Updates),
+                // gleiches Muster wie Standort.kt bei einem anderen optionalen Recht.
             }
         }
         setContentView(R.layout.activity_main)
