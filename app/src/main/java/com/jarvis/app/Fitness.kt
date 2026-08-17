@@ -103,6 +103,41 @@ object Fitness {
 
     private fun rundeEineNachkommastelle(x: Double): Double = Math.round(x * 10.0) / 10.0
 
+    /** Liest alle Radfahrten im Fenster [vonInclusive, bisExklusiv) aus
+     *  Health Connect. Rueckgabewert: Paare aus (ExerciseSessionRecord, aggregierte
+     *  Fahrradfahrt-Daten). Wird sowohl fuer die Wochen-Aggregation als auch fuer
+     *  die Gehstrecke-Bereinigung genutzt (siehe leseWoche und synchronisiere). */
+    private suspend fun leseRadfahrten(
+        hc: HealthConnectClient, vonInclusive: Instant, bisExklusiv: Instant,
+    ): List<Pair<ExerciseSessionRecord, Fahrradfahrt>> {
+        val sessions = hc.readRecords(
+            ReadRecordsRequest(
+                ExerciseSessionRecord::class,
+                TimeRangeFilter.between(vonInclusive, bisExklusiv),
+            )
+        ).records.filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_BIKING }
+
+        return sessions.map { s ->
+            val fenster = TimeRangeFilter.between(s.startTime, s.endTime)
+            val agg = hc.aggregate(
+                AggregateRequest(
+                    metrics = setOf(
+                        DistanceRecord.DISTANCE_TOTAL,
+                        ElevationGainedRecord.ELEVATION_GAINED_TOTAL,
+                        HeartRateRecord.BPM_AVG,
+                    ),
+                    timeRangeFilter = fenster,
+                )
+            )
+            Pair(s, Fahrradfahrt(
+                distanzKm = (agg[DistanceRecord.DISTANCE_TOTAL]?.inMeters ?: 0.0) / 1000.0,
+                hoehenmeter = (agg[ElevationGainedRecord.ELEVATION_GAINED_TOTAL]?.inMeters ?: 0.0).toInt(),
+                dauerMin = ChronoUnit.MINUTES.between(s.startTime, s.endTime).toInt(),
+                pulsAvg = (agg[HeartRateRecord.BPM_AVG] ?: 0).toInt(),
+            ))
+        }
+    }
+
     /** Baut den JSON-Koerper fuer POST /fitness-sync - Vertrag siehe
      *  docs/superpowers/specs/2026-08-17-fitness-dashboard-design.md. */
     fun baueSyncPayload(
@@ -152,33 +187,9 @@ object Fitness {
     private suspend fun leseWoche(
         hc: HealthConnectClient, wochenStart: Instant, wochenEndeExklusiv: Instant,
     ): WochenDaten {
-        val sessions = hc.readRecords(
-            ReadRecordsRequest(
-                ExerciseSessionRecord::class,
-                TimeRangeFilter.between(wochenStart, wochenEndeExklusiv),
-            )
-        ).records.filter { it.exerciseType == ExerciseSessionRecord.EXERCISE_TYPE_BIKING }
-
-        val fahrten = sessions.map { s ->
-            val fenster = TimeRangeFilter.between(s.startTime, s.endTime)
-            val agg = hc.aggregate(
-                AggregateRequest(
-                    metrics = setOf(
-                        DistanceRecord.DISTANCE_TOTAL,
-                        ElevationGainedRecord.ELEVATION_GAINED_TOTAL,
-                        HeartRateRecord.BPM_AVG,
-                    ),
-                    timeRangeFilter = fenster,
-                )
-            )
-            Fahrradfahrt(
-                distanzKm = (agg[DistanceRecord.DISTANCE_TOTAL]?.inMeters ?: 0.0) / 1000.0,
-                hoehenmeter = (agg[ElevationGainedRecord.ELEVATION_GAINED_TOTAL]?.inMeters ?: 0.0).toInt(),
-                dauerMin = ChronoUnit.MINUTES.between(s.startTime, s.endTime).toInt(),
-                pulsAvg = (agg[HeartRateRecord.BPM_AVG] ?: 0).toInt(),
-            )
-        }
-        return WochenDaten(summiereWoche(fahrten), sessions.zip(fahrten))
+        val fahrtenMitSession = leseRadfahrten(hc, wochenStart, wochenEndeExklusiv)
+        val fahrten = fahrtenMitSession.map { it.second }
+        return WochenDaten(summiereWoche(fahrten), fahrtenMitSession)
     }
 
     /** Schickt einen fertigen Sync-Payload an den Server. Gibt false zurueck
@@ -228,6 +239,16 @@ object Fitness {
             heute.plusDays(1).atStartOfDay(zone).toInstant(),
         )
 
+        // Fahrten fuer Gehstrecke-Bereinigung: unabhaengiges 2-Tage-Fenster,
+        // damit die Berechnung nicht durch ISO-Wochengrenzenfaelle (z.B. Montag,
+        // wo kwStart == heute ist) verfaelscht wird. Deckt gestern+heute IMMER
+        // vollstaendig ab, ganz gleich wo die Wochengrenze liegt.
+        val fahrtenFuerTage = leseRadfahrten(
+            hc,
+            heute.minusDays(1).atStartOfDay(zone).toInstant(),
+            heute.plusDays(1).atStartOfDay(zone).toInstant(),
+        )
+
         val tage = listOf(heute.minusDays(1), heute).map { tag ->
             val fenster = TimeRangeFilter.between(
                 tag.atStartOfDay(zone).toInstant(),
@@ -271,8 +292,10 @@ object Fitness {
             // 40-km-Ritt liesse "Gehstrecke" faelschlich in die Hoehe
             // schnellen). Vereinfachte, akzeptierte Annaeherung: Fahrten,
             // die AN DIESEM TAG starten, werden mit ihrer vollen
-            // Distanz abgezogen.
-            val radDistanzAmTag = aktuelleWoche.fahrtenMitSession
+            // Distanz abgezogen. Nutzt fahrtenFuerTage (eigenes 2-Tage-Fenster),
+            // nicht aktuelleWoche.fahrtenMitSession (Wochenfenster), damit
+            // auch am Montag noch der Sonntag der Vorwoche korrekt berechnet wird.
+            val radDistanzAmTag = fahrtenFuerTage
                 .filter { (s, _) -> s.startTime.atZone(zone).toLocalDate() == tag }
                 .sumOf { (_, f) -> f.distanzKm }
             val gehstreckeKm = (
