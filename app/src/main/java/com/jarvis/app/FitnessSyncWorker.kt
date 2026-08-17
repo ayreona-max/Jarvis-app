@@ -27,18 +27,43 @@ class FitnessSyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    override suspend fun doWork(): Result {
-        try {
-            Fitness.synchronisiere(applicationContext, client)
-        } catch (t: Throwable) {
-            // Ein Netz-/Health-Connect-Fehler darf den taeglichen Sync nicht
-            // dauerhaft stoppen - der naechste Lauf morgen holt nach.
+    /**
+     * Meldet Result.retry() NUR, wenn ein Sync wirklich versucht wurde und am
+     * Senden scheiterte - dann holt WorkManager es mit wachsendem Abstand von
+     * selbst nach, ohne bis zum naechsten Tageslauf zu warten. Anlass war ein
+     * echter Fall (17.08.2026): Der Server kannte /fitness-sync noch nicht
+     * (Code war auf GitHub, aber nicht auf den Pi ausgerollt), der erste Sync
+     * schlug fehl - und weil hier frueher IMMER Result.success() zurueckkam,
+     * wurde er nie wiederholt.
+     *
+     * Bei NICHTS_ZU_TUN (nicht konfiguriert / Health Connect fehlt / Rechte
+     * nicht erteilt) bewusst KEIN retry: das aendert sich nur durch Franks
+     * Zutun, Wiederholen wuerde nur Akku kosten.
+     *
+     * Ein Absturz beim Lesen aus Health Connect (z.B. RemoteException
+     * waehrend eines Modul-Updates) gilt als voruebergehend und wird ebenfalls
+     * wiederholt - aber gedeckelt, damit ein dauerhaft kaputter Zustand nicht
+     * endlos nachfeuert; danach greift wieder der normale Tagesrhythmus.
+     */
+    override suspend fun doWork(): Result = try {
+        when (Fitness.synchronisiere(applicationContext, client)) {
+            Fitness.SyncErgebnis.ERFOLG -> Result.success()
+            Fitness.SyncErgebnis.NICHTS_ZU_TUN -> Result.success()
+            Fitness.SyncErgebnis.SENDEN_FEHLGESCHLAGEN -> wiederholenOderAufgeben()
         }
-        return Result.success()
+    } catch (_: Throwable) {
+        wiederholenOderAufgeben()
     }
+
+    private fun wiederholenOderAufgeben(): Result =
+        if (runAttemptCount < MAX_VERSUCHE) Result.retry() else Result.success()
 
     companion object {
         private const val ARBEITSNAME = "fitness_sync"
+
+        /** Nach so vielen vergeblichen Anlaeufen wird bis zum naechsten
+         *  Tageslauf gewartet, statt weiter nachzufeuern. */
+        private const val MAX_VERSUCHE = 5
 
         fun registriere(ctx: Context) {
             val anfrage = PeriodicWorkRequestBuilder<FitnessSyncWorker>(1, TimeUnit.DAYS)

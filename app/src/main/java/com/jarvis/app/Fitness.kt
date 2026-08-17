@@ -207,11 +207,31 @@ object Fitness {
         false
     }
 
+    /** Ausgang eines Sync-Laufs. Bewusst DREI Faelle statt eines Boolean:
+     *  FitnessSyncWorker muss "gar nicht erst versucht" von "versucht und
+     *  schiefgegangen" unterscheiden koennen - nur Letzteres darf einen
+     *  Wiederholungsversuch ausloesen. Ein blindes Wiederholen auch bei
+     *  fehlender Konfiguration/Berechtigung wuerde endlos Akku kosten, ohne
+     *  je erfolgreich werden zu koennen (Ursache dafuer aendert sich nur
+     *  durch Franks Zutun, nicht durch Warten). */
+    enum class SyncErgebnis {
+        /** Alles uebertragen. */
+        ERFOLG,
+
+        /** Vorbedingung fehlt (nicht konfiguriert, Health Connect nicht
+         *  verfuegbar, Rechte nicht erteilt) - Wiederholen waere sinnlos. */
+        NICHTS_ZU_TUN,
+
+        /** Daten gelesen, aber das Senden schlug fehl (Netzfehler, Server
+         *  nicht erreichbar, Server antwortet mit Fehler) - genau der Fall,
+         *  den ein Wiederholungsversuch spaeter reparieren kann. */
+        SENDEN_FEHLGESCHLAGEN,
+    }
+
     /** Liest die aktuelle Kalenderwoche (Rad) und heute+gestern (Alltag) aus
      *  Health Connect, baut den Sync-Payload und schickt ihn an den Server.
-     *  Gibt false zurueck (kein Absturz) bei fehlender Konfiguration,
-     *  fehlender Berechtigung oder Netzfehler - der naechste taegliche Lauf
-     *  holt es nach, siehe FitnessSyncWorker.
+     *  Stuerzt nie ab, sondern meldet den Ausgang als [SyncErgebnis] -
+     *  wie darauf reagiert wird, entscheidet FitnessSyncWorker.
      *
      *  Montags-Sonderfall: Weil jeder Lauf NUR die laufende Kalenderwoche
      *  postet, wuerde eine Fahrt am Sonntagabend sonst nie mehr uebertragen -
@@ -219,15 +239,17 @@ object Fitness {
      *  "heute" auf einen Montag, wird deshalb zusaetzlich die GERADE
      *  ABGESCHLOSSENE Vorwoche erneut aggregiert und gepostet (Upsert auf
      *  kw_start beim Server macht das gefahrlos wiederholbar). */
-    suspend fun synchronisiere(ctx: Context, client: OkHttpClient): Boolean {
+    suspend fun synchronisiere(ctx: Context, client: OkHttpClient): SyncErgebnis {
         val prefs = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
         val basis = (prefs.getString("url", "") ?: "").trim().trimEnd('/')
         val key = prefs.getString("key", "") ?: ""
-        if (basis.isEmpty() || key.isEmpty()) return false
-        if (!verfuegbar(ctx)) return false
+        if (basis.isEmpty() || key.isEmpty()) return SyncErgebnis.NICHTS_ZU_TUN
+        if (!verfuegbar(ctx)) return SyncErgebnis.NICHTS_ZU_TUN
 
         val hc = HealthConnectClient.getOrCreate(ctx)
-        if (!hc.permissionController.getGrantedPermissions().containsAll(BENOETIGTE_BERECHTIGUNGEN)) return false
+        if (!hc.permissionController.getGrantedPermissions().containsAll(BENOETIGTE_BERECHTIGUNGEN)) {
+            return SyncErgebnis.NICHTS_ZU_TUN
+        }
 
         val zone = ZoneId.systemDefault()
         val heute = LocalDate.now(zone)
@@ -327,6 +349,10 @@ object Fitness {
             erfolgVorwoche = poste(client, basis, vorPayload)
         }
 
-        return erfolgAktuelleWoche && erfolgVorwoche
+        return if (erfolgAktuelleWoche && erfolgVorwoche) {
+            SyncErgebnis.ERFOLG
+        } else {
+            SyncErgebnis.SENDEN_FEHLGESCHLAGEN
+        }
     }
 }
