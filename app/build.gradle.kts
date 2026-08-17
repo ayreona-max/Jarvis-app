@@ -80,6 +80,13 @@ dependencies {
     // App zufaellig als naechstes geoeffnet hat (14.08.2026, siehe
     // PLAN-POSTFACH-HINTERGRUNDABRUF.md). Kein Firebase/Push noetig.
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Health Connect: liest Fitness-/Gesundheitsdaten, die Garmin Connect
+    // dort hinterlegt (Ersatz fuer Strava und Google Fit, siehe
+    // docs/superpowers/specs/2026-08-17-fitness-dashboard-design.md - beide
+    // sind keine gangbaren Wege mehr).
+    implementation("androidx.health.connect:connect-client:1.1.0")
+    // lifecycleScope fuer die asynchrone Berechtigungspruefung in MainActivity.
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     // TensorFlow Lite: fuehrt die openWakeWord-Modelle ("Hey Jarvis") lokal
     // aus - Ersatz fuer Porcupine, dessen kostenloses Konto Picovoice zum
     // 30.06.2026 abgeschafft hat. Kein Konto, kein AccessKey, kein Ton

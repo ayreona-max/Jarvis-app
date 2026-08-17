@@ -20,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -209,6 +211,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    private val fitnessBerechtigungsLauncher =
+        registerForActivityResult(Fitness.berechtigungsVertrag()) { /* Ergebnis wird beim naechsten Sync-Versuch neu geprueft, siehe Fitness.hatAlleBerechtigungen */ }
+
     /**
      * Haelt die Ursache eines Absturzes fest, damit sie beim naechsten Start
      * ANGEZEIGT werden kann.
@@ -248,6 +253,11 @@ class MainActivity : AppCompatActivity() {
         // Weckwort-Dienst, siehe PostfachSyncWorker. KEEP-Policy macht das
         // hier bei jedem App-Start sicher wiederholbar.
         PostfachSyncWorker.registriere(this)
+        lifecycleScope.launch {
+            if (Fitness.verfuegbar(this@MainActivity) && !Fitness.hatAlleBerechtigungen(this@MainActivity)) {
+                fitnessBerechtigungsLauncher.launch(Fitness.benoetigteBerechtigungen())
+            }
+        }
         setContentView(R.layout.activity_main)
 
         urlField = findViewById(R.id.serverUrl)

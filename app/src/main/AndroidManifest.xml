@@ -44,6 +44,20 @@
          Nachfrage beim Nutzer noetig. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- Fitness Dashboard (17.08.2026): liest Radfahrt- und Alltagsdaten aus
+         Health Connect, die Garmin Connect dort hinterlegt. Nur Lesen, kein
+         Schreiben - Jarvis traegt selbst keine Gesundheitsdaten ein. -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_ELEVATION_GAINED" />
+
     <application
         android:allowBackup="true"
         android:label="Jarvis"
