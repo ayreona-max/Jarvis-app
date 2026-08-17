@@ -253,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         // Weckwort-Dienst, siehe PostfachSyncWorker. KEEP-Policy macht das
         // hier bei jedem App-Start sicher wiederholbar.
         PostfachSyncWorker.registriere(this)
+        FitnessSyncWorker.registriere(this)
         lifecycleScope.launch {
             if (Fitness.verfuegbar(this@MainActivity) && !Fitness.hatAlleBerechtigungen(this@MainActivity)) {
                 fitnessBerechtigungsLauncher.launch(Fitness.benoetigteBerechtigungen())

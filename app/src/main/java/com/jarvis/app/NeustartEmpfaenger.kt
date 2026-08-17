@@ -34,6 +34,7 @@ class NeustartEmpfaenger : BroadcastReceiver() {
         // "Hey Jarvis" nicht durchgehend an, siehe
         // PLAN-POSTFACH-HINTERGRUNDABRUF.md).
         PostfachSyncWorker.registriere(context)
+        FitnessSyncWorker.registriere(context)
 
         val prefs = context.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
         if (!prefs.getBoolean("wake_aktiv", false)) return
