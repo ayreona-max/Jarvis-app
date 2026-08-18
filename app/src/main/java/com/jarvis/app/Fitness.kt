@@ -285,7 +285,7 @@ object Fitness {
      *  also NICHT einer der drei [SyncErgebnis]-Faelle, die synchronisiere()
      *  selbst zurueckgeben kann.
      *
-     *  Eigener Text statt SENDEN_FEHLGESCHLAGEN mitzubenutzen (19.08.2026,
+     *  Eigener Text statt SENDEN_FEHLGESCHLAGEN mitzubenutzen (18.08.2026,
      *  Franks Wunsch): Sonst haette dieser Fall "Server nicht erreichbar"
      *  gemeldet und die Suche in die voellig falsche Richtung geschickt -
      *  der Server ist hier gar nicht beteiligt, die Daten kamen nie bis zum
