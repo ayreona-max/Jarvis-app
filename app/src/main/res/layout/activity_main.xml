@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- FrameLayout statt direkt ScrollView: der Sperrschirm liegt als eigene
      Ebene OBEN drauf, damit er wirklich alles verdeckt, auch waehrend die
      ScrollView noch scrollt. -->
@@ -123,7 +123,7 @@
             style="@style/Widget.Jarvis.HudButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🟢 “Hey Jarvis” aktivieren"
+            android:text="🟢 „Hey Jarvis” aktivieren"
             android:layout_marginTop="8dp" />
 
         <Button
