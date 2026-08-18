@@ -280,6 +280,25 @@ object Fitness {
             "Server nicht erreichbar. Nächster automatischer Versuch folgt."
     }
 
+    /** Meldung fuer den Fall, dass schon das LESEN aus Health Connect wirft
+     *  (z.B. RemoteException waehrend eines Health-Connect-Modul-Updates) -
+     *  also NICHT einer der drei [SyncErgebnis]-Faelle, die synchronisiere()
+     *  selbst zurueckgeben kann.
+     *
+     *  Eigener Text statt SENDEN_FEHLGESCHLAGEN mitzubenutzen (19.08.2026,
+     *  Franks Wunsch): Sonst haette dieser Fall "Server nicht erreichbar"
+     *  gemeldet und die Suche in die voellig falsche Richtung geschickt -
+     *  der Server ist hier gar nicht beteiligt, die Daten kamen nie bis zum
+     *  Senden. Ehrliche Fehlanzeige heisst auch: die richtige Ursache
+     *  nennen, nicht nur "fehlgeschlagen". Hier als Konstante neben
+     *  textFuerSyncErgebnis() und nicht als Literal im Klick-Handler, damit
+     *  alle vier Meldungen an EINER Stelle stehen und im JVM-Unit-Test
+     *  pruefbar bleiben (siehe FitnessAggregationTest). */
+    const val TEXT_LESEFEHLER: String =
+        "Sync abgebrochen – die Gesundheitsdaten ließen sich nicht lesen. " +
+            "Das passiert meist während eines Health-Connect-Updates; " +
+            "der nächste automatische Versuch folgt."
+
     /** Liest die aktuelle Kalenderwoche (Rad) und heute+gestern (Alltag) aus
      *  Health Connect, baut den Sync-Payload und schickt ihn an den Server.
      *  Das SENDEN kann nie werfen und meldet den Ausgang als [SyncErgebnis] -

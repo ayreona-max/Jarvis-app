@@ -470,18 +470,22 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.syncButton).setOnClickListener {
             answerView.text = "Synchronisiere …"
             lifecycleScope.launch {
-                val ergebnis = try {
-                    Fitness.synchronisiere(this@MainActivity, client)
+                answerView.text = try {
+                    Fitness.textFuerSyncErgebnis(
+                        Fitness.synchronisiere(this@MainActivity, client)
+                    )
                 } catch (_: Throwable) {
                     // Die Health-Connect-Lesevorgaenge in synchronisiere()
                     // sind ungeschuetzt (z.B. RemoteException waehrend eines
                     // Health-Connect-Modul-Updates) - ohne dieses catch
                     // wuerde eine solche Ausnahme hier die App abstuerzen
                     // lassen (gleiches Muster wie FitnessSyncWorker.doWork
-                    // und onCreate() oben).
-                    Fitness.SyncErgebnis.SENDEN_FEHLGESCHLAGEN
+                    // und onCreate() oben). Eigener Text statt eines
+                    // SyncErgebnis-Falls: hier ist der Server gar nicht
+                    // beteiligt, "Server nicht erreichbar" waere schlicht
+                    // falsch (siehe Fitness.TEXT_LESEFEHLER).
+                    Fitness.TEXT_LESEFEHLER
                 }
-                answerView.text = Fitness.textFuerSyncErgebnis(ergebnis)
             }
         }
     }

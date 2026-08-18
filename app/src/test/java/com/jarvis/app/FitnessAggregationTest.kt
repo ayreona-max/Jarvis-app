@@ -1,6 +1,8 @@
 package com.jarvis.app
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -110,6 +112,36 @@ class FitnessAggregationTest {
             "Sync fehlgeschlagen – Server nicht erreichbar. Nächster " +
                 "automatischer Versuch folgt.",
             Fitness.textFuerSyncErgebnis(Fitness.SyncErgebnis.SENDEN_FEHLGESCHLAGEN),
+        )
+    }
+
+    /** Der Lesefehler-Text muss sich von ALLEN drei SyncErgebnis-Texten
+     *  unterscheiden - genau das war der Fehler, den dieser Test verhindert:
+     *  vorher benutzte der Klick-Handler bei einem Health-Connect-Lesefehler
+     *  den SENDEN_FEHLGESCHLAGEN-Text mit und meldete damit "Server nicht
+     *  erreichbar", obwohl der Server gar nicht beteiligt war. */
+    @Test
+    fun lesefehlerTextIstVonAllenAnderenVerschieden() {
+        val andere = Fitness.SyncErgebnis.values()
+            .map { Fitness.textFuerSyncErgebnis(it) }
+        assertFalse(
+            "TEXT_LESEFEHLER darf keinen der SyncErgebnis-Texte wiederverwenden",
+            andere.contains(Fitness.TEXT_LESEFEHLER),
+        )
+    }
+
+    /** Die Meldung muss die echte Ursache benennen (Gesundheitsdaten/Lesen)
+     *  und darf NICHT dem Server die Schuld geben - "ehrliche Fehlanzeige"
+     *  heisst auch: die richtige Ursache nennen. */
+    @Test
+    fun lesefehlerTextNenntDieRichtigeUrsache() {
+        assertTrue(
+            "sollte die Gesundheitsdaten als Ursache nennen",
+            Fitness.TEXT_LESEFEHLER.contains("Gesundheitsdaten"),
+        )
+        assertFalse(
+            "darf nicht faelschlich den Server als Ursache nennen",
+            Fitness.TEXT_LESEFEHLER.contains("Server"),
         )
     }
 }
