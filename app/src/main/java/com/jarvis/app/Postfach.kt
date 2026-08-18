@@ -132,9 +132,14 @@ object Postfach {
         // Briefings enthalten Termine, Postfach und Depotstand - genau das,
         // was nicht blank durch einen fremden Tunnel laufen soll.
         val e2e = Krypto.aktiv(ctx)
+        // Schluessel als X-Key-Header statt ?key= in der URL (Sicherheits-
+        // Review 18.08.2026): ein URL-Parameter landet in ngroks eigener
+        // Verkehrsansicht, auch wenn er aus den Server-Logs schon
+        // ausgeblendet ist. Der Server versteht uebergangsweise noch beide
+        // Formen (siehe main.py, app_nachrichten).
         val anfrage = Request.Builder()
-            .url("$basis/app-nachrichten?key=" + java.net.URLEncoder.encode(key, "UTF-8")
-                 + (if (e2e) "&e2e=1" else ""))
+            .url("$basis/app-nachrichten" + (if (e2e) "?e2e=1" else ""))
+            .addHeader("X-Key", key)
             .addHeader("ngrok-skip-browser-warning", "true")
             .get()
             .build()

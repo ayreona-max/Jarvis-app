@@ -139,7 +139,12 @@ object Fitness {
     }
 
     /** Baut den JSON-Koerper fuer POST /fitness-sync - Vertrag siehe
-     *  docs/superpowers/specs/2026-08-17-fitness-dashboard-design.md. */
+     *  docs/superpowers/specs/2026-08-17-fitness-dashboard-design.md.
+     *  Bewusst OHNE Context/Verschluesselung: bleibt dadurch reine, im
+     *  Cloud-Build ohne echtes Geraet testbare Logik (siehe
+     *  FitnessAggregationTest) - die E2E-Verschluesselung passiert als
+     *  eigener Schritt in verschluesseltFallsAktiv(), unmittelbar vor dem
+     *  Senden in synchronisiere(). */
     fun baueSyncPayload(
         schluessel: String, kwStart: LocalDate, woche: Wochenaggregat, tage: List<Tagesaggregat>,
     ): JSONObject {
@@ -165,6 +170,26 @@ object Fitness {
             put("key", schluessel)
             put("woche", wocheJson)
             put("tage", tageJson)
+        }
+    }
+
+    /** Verschluesselt 'woche'/'tage' eines Payloads wie Text/Ton/Foto bei
+     *  /assistant, wenn ein E2E-Schluessel hinterlegt ist - sonst
+     *  unveraendert (Sicherheits-Review 18.08.2026: /fitness-sync lief
+     *  bisher als einziger Inhalts-Endpunkt unverschluesselt durch den
+     *  Tunnel, Schlaf/Ruhepuls/Schritte eingeschlossen). 'key' bleibt immer
+     *  Klartext, wie ueberall - der Server muss ihn vor jeder
+     *  Entschluesselung pruefen koennen. */
+    private fun verschluesseltFallsAktiv(ctx: Context, payload: JSONObject): JSONObject {
+        if (!Krypto.aktiv(ctx)) return payload
+        val inhalt = JSONObject().apply {
+            put("woche", payload.getJSONObject("woche"))
+            put("tage", payload.getJSONArray("tage"))
+        }
+        return JSONObject().apply {
+            put("key", payload.getString("key"))
+            put("e2e", 1)
+            put("data", Krypto.verschluesselnText(ctx, inhalt.toString()))
         }
     }
 
@@ -335,7 +360,7 @@ object Fitness {
         }
 
         val payload = baueSyncPayload(key, kwStart, aktuelleWoche.woche, tage)
-        val erfolgAktuelleWoche = poste(client, basis, payload)
+        val erfolgAktuelleWoche = poste(client, basis, verschluesseltFallsAktiv(ctx, payload))
 
         var erfolgVorwoche = true
         if (heute.dayOfWeek == DayOfWeek.MONDAY) {
@@ -346,7 +371,7 @@ object Fitness {
                 kwStart.atStartOfDay(zone).toInstant(),
             )
             val vorPayload = baueSyncPayload(key, vorKwStart, vorWoche.woche, tage)
-            erfolgVorwoche = poste(client, basis, vorPayload)
+            erfolgVorwoche = poste(client, basis, verschluesseltFallsAktiv(ctx, vorPayload))
         }
 
         return if (erfolgAktuelleWoche && erfolgVorwoche) {
