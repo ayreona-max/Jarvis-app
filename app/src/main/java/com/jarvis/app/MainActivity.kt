@@ -470,7 +470,17 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.syncButton).setOnClickListener {
             answerView.text = "Synchronisiere …"
             lifecycleScope.launch {
-                val ergebnis = Fitness.synchronisiere(this@MainActivity, client)
+                val ergebnis = try {
+                    Fitness.synchronisiere(this@MainActivity, client)
+                } catch (_: Throwable) {
+                    // Die Health-Connect-Lesevorgaenge in synchronisiere()
+                    // sind ungeschuetzt (z.B. RemoteException waehrend eines
+                    // Health-Connect-Modul-Updates) - ohne dieses catch
+                    // wuerde eine solche Ausnahme hier die App abstuerzen
+                    // lassen (gleiches Muster wie FitnessSyncWorker.doWork
+                    // und onCreate() oben).
+                    Fitness.SyncErgebnis.SENDEN_FEHLGESCHLAGEN
+                }
                 answerView.text = Fitness.textFuerSyncErgebnis(ergebnis)
             }
         }

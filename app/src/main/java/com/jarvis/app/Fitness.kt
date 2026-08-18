@@ -14,6 +14,9 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -218,19 +221,26 @@ object Fitness {
     }
 
     /** Schickt einen fertigen Sync-Payload an den Server. Gibt false zurueck
-     *  (kein Absturz) bei Netzfehlern - siehe synchronisiere. */
-    private fun poste(client: OkHttpClient, basis: String, payload: JSONObject): Boolean = try {
-        val body = payload.toString().toRequestBody("application/json".toMediaType())
-        client.newCall(
-            Request.Builder()
-                .url("$basis/fitness-sync")
-                .addHeader("ngrok-skip-browser-warning", "true")
-                .post(body)
-                .build()
-        ).execute().use { it.isSuccessful }
-    } catch (_: Exception) {
-        false
-    }
+     *  (kein Absturz) bei Netzfehlern - siehe synchronisiere. Der blockierende
+     *  OkHttp-Aufruf laeuft bewusst in withContext(Dispatchers.IO): so gilt
+     *  das fuer JEDEN Aufrufer, auch einen kuenftigen, der aus dem UI-Kontext
+     *  (Dispatchers.Main) ruft - sonst wirft Android dort verlaesslich eine
+     *  NetworkOnMainThreadException (siehe Abschluss-Review 18.08.2026, C1). */
+    private suspend fun poste(client: OkHttpClient, basis: String, payload: JSONObject): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val body = payload.toString().toRequestBody("application/json".toMediaType())
+                client.newCall(
+                    Request.Builder()
+                        .url("$basis/fitness-sync")
+                        .addHeader("ngrok-skip-browser-warning", "true")
+                        .post(body)
+                        .build()
+                ).execute().use { it.isSuccessful }
+            } catch (_: IOException) {
+                false
+            }
+        }
 
     /** Ausgang eines Sync-Laufs. Bewusst DREI Faelle statt eines Boolean:
      *  FitnessSyncWorker muss "gar nicht erst versucht" von "versucht und
@@ -272,8 +282,12 @@ object Fitness {
 
     /** Liest die aktuelle Kalenderwoche (Rad) und heute+gestern (Alltag) aus
      *  Health Connect, baut den Sync-Payload und schickt ihn an den Server.
-     *  Stuerzt nie ab, sondern meldet den Ausgang als [SyncErgebnis] -
-     *  wie darauf reagiert wird, entscheidet FitnessSyncWorker.
+     *  Das SENDEN kann nie werfen und meldet den Ausgang als [SyncErgebnis] -
+     *  die Health-Connect-Lesevorgaenge davor sind aber NICHT abgesichert
+     *  (z.B. RemoteException waehrend eines Health-Connect-Modul-Updates) -
+     *  jeder Aufrufer muss das selbst abfangen (siehe FitnessSyncWorker.doWork
+     *  und der Klick-Handler in MainActivity). Wie auf [SyncErgebnis]
+     *  reagiert wird, entscheidet FitnessSyncWorker.
      *
      *  Montags-Sonderfall: Weil jeder Lauf NUR die laufende Kalenderwoche
      *  postet, wuerde eine Fahrt am Sonntagabend sonst nie mehr uebertragen -
