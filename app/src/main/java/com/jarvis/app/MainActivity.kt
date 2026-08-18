@@ -460,6 +460,20 @@ class MainActivity : AppCompatActivity() {
             statusHandler.removeCallbacks(statusRunnable)
             statusHandler.post(statusRunnable)
         }
+
+        // --- Fitness-Sync manuell anstossen: normalerweise laeuft das nur
+        // einmal taeglich im Hintergrund (FitnessSyncWorker) - dieser Knopf
+        // erlaubt ein sofortiges Nachsynchronisieren, z. B. wenn Werte im
+        // Dashboard fehlen. Kein Sperren waehrend des Laufs (wie bei den
+        // anderen Knoepfen auch nicht) - ein doppelter Sync ist unschaedlich,
+        // der Server macht ein Upsert auf kw_start.
+        findViewById<Button>(R.id.syncButton).setOnClickListener {
+            answerView.text = "Synchronisiere …"
+            lifecycleScope.launch {
+                val ergebnis = Fitness.synchronisiere(this@MainActivity, client)
+                answerView.text = Fitness.textFuerSyncErgebnis(ergebnis)
+            }
+        }
     }
 
     /**
