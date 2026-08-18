@@ -253,6 +253,23 @@ object Fitness {
         SENDEN_FEHLGESCHLAGEN,
     }
 
+    /** Wandelt ein [SyncErgebnis] in den Text um, der im Antwortfeld der
+     *  App erscheint, wenn der "Fitness synchronisieren"-Knopf gedrückt
+     *  wurde. Eigene, reine Funktion statt inline im Klick-Handler - so
+     *  bleibt sie ohne Android-Context im JVM-Unit-Test prüfbar (siehe
+     *  FitnessAggregationTest). NICHTS_ZU_TUN deckt bewusst drei Ursachen
+     *  in einer ehrlichen Sammelmeldung ab (nicht eingerichtet, Health
+     *  Connect fehlt, Berechtigung fehlt) statt sie einzeln zu
+     *  unterscheiden - das Enum selbst unterscheidet sie nicht (YAGNI). */
+    fun textFuerSyncErgebnis(ergebnis: SyncErgebnis): String = when (ergebnis) {
+        SyncErgebnis.ERFOLG -> "Fitness-Sync erfolgreich."
+        SyncErgebnis.NICHTS_ZU_TUN -> "Sync nicht möglich (Server nicht " +
+            "eingerichtet, Health Connect nicht verfügbar oder " +
+            "Berechtigung fehlt)."
+        SyncErgebnis.SENDEN_FEHLGESCHLAGEN -> "Sync fehlgeschlagen – " +
+            "Server nicht erreichbar. Nächster automatischer Versuch folgt."
+    }
+
     /** Liest die aktuelle Kalenderwoche (Rad) und heute+gestern (Alltag) aus
      *  Health Connect, baut den Sync-Payload und schickt ihn an den Server.
      *  Stuerzt nie ab, sondern meldet den Ausgang als [SyncErgebnis] -

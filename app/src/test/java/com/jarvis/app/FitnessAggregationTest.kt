@@ -86,4 +86,30 @@ class FitnessAggregationTest {
         assertEquals("2026-08-17", tag.getString("datum"))
         assertEquals(5.2, tag.getDouble("gehstrecke_km"), 0.001)
     }
+
+    @Test
+    fun textFuerSyncErgebnisErfolg() {
+        assertEquals(
+            "Fitness-Sync erfolgreich.",
+            Fitness.textFuerSyncErgebnis(Fitness.SyncErgebnis.ERFOLG),
+        )
+    }
+
+    @Test
+    fun textFuerSyncErgebnisNichtsZuTun() {
+        assertEquals(
+            "Sync nicht möglich (Server nicht eingerichtet, Health " +
+                "Connect nicht verfügbar oder Berechtigung fehlt).",
+            Fitness.textFuerSyncErgebnis(Fitness.SyncErgebnis.NICHTS_ZU_TUN),
+        )
+    }
+
+    @Test
+    fun textFuerSyncErgebnisFehlgeschlagen() {
+        assertEquals(
+            "Sync fehlgeschlagen – Server nicht erreichbar. Nächster " +
+                "automatischer Versuch folgt.",
+            Fitness.textFuerSyncErgebnis(Fitness.SyncErgebnis.SENDEN_FEHLGESCHLAGEN),
+        )
+    }
 }
