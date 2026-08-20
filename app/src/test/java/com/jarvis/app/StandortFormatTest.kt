@@ -38,12 +38,15 @@ class StandortFormatTest {
         )
     }
 
-    /** Doreens echte Adresse - der haeufigste Fall ueberhaupt. */
+    /** Zweite vollstaendige Adresse, anderer Stadtteil - im Alltag der
+     *  haeufigste Fall. Die Adresse ist ERFUNDEN: hier gehoert bewusst
+     *  keine echte hin, dieses Repo ist oeffentlich. Geprueft wird
+     *  ohnehin nur die FORM der Adresse, nie ihr Inhalt. */
     @Test
-    fun ihreWohnadresse() {
+    fun vollstaendigeAdresseAndererStadtteil() {
         assertEquals(
-            "Am Rötepfuhl 35, 12349 Berlin-Buckow",
-            f("Am Rötepfuhl", "35", "12349", "Berlin", "Buckow")
+            "Am Musterweg 7, 12349 Berlin-Buckow",
+            f("Am Musterweg", "7", "12349", "Berlin", "Buckow")
         )
     }
 
@@ -131,8 +134,8 @@ class StandortFormatTest {
     @Test
     fun ueberfluessigeLeerzeichenWerdenZusammengezogen() {
         assertEquals(
-            "Am Rötepfuhl 35, 12349 Berlin-Buckow",
-            f("  Am   Rötepfuhl \n", " 35 ", " 12349 ", " Berlin ", " Buckow ")
+            "Am Musterweg 7, 12349 Berlin-Buckow",
+            f("  Am   Musterweg \n", " 7 ", " 12349 ", " Berlin ", " Buckow ")
         )
     }
 }

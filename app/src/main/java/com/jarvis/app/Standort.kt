@@ -279,7 +279,7 @@ object Standort {
      * (StandortFormatTest, gleiche Idee wie beim Verschluesselungs-Format).
      *
      * Beispiele:
-     *   "Am Rötepfuhl 35, 12349 Berlin-Buckow"
+     *   "Am Musterweg 7, 12349 Berlin-Buckow"
      *   "22765 Hamburg-Ottensen"       (Strasse unbekannt)
      *   "Hamburg"                      (nur die Stadt bekannt)
      *   ""                             (nichts Brauchbares)
