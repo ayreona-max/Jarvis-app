@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "com.jarvis.app"
-        minSdk = 26          // Android 8.0 - deckt Doreens Galaxy locker ab
+        minSdk = 26          // Android 8.0 - deckt das Zielgeraet locker ab
         targetSdk = 34
         versionCode = 38
         versionName = "0.38"

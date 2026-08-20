@@ -16,7 +16,7 @@ import javax.crypto.spec.SecretKeySpec
  * Verkehr blank. Wer den Tunnel betreibt, koennte also mitlesen. Deshalb
  * werden die INHALTE selbst verschluesselt, unabhaengig vom Transportweg.
  *
- * GRENZE (mit Doreen so besprochen): "Ende zu Ende" heisst hier Handy <->
+ * GRENZE (so abgesprochen): "Ende zu Ende" heisst hier Handy <->
  * Laptop. Anthropic und ElevenLabs sehen die Inhalte weiterhin - dort findet
  * die Verarbeitung statt. Verborgen wird der Inhalt, nicht die Tatsache,
  * dass etwas gesendet wurde.

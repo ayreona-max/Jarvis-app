@@ -11,19 +11,22 @@
     <!-- Damit das Lauschen einen Handy-Neustart ueberlebt (siehe
          NeustartEmpfaenger). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Rueckmeldung per Vibration statt Ton: Doreens Handy ist dauerhaft
-         stumm, damit bleiben auch Pieps ueber den Medienkanal unhoerbar.
+    <!-- Rueckmeldung per Vibration statt Ton: Das Handy ist dauerhaft
+         stumm geschaltet, damit bleiben auch Pieps ueber den Medienkanal
+         unhoerbar.
          Normale Berechtigung, keine Nachfrage beim Nutzer noetig. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Haelt die CPU wach, solange gelauscht wird. Ein Vordergrunddienst
          schuetzt nur den Prozess, nicht die Rechenzeit - bei ausgeschaltetem
          Bildschirm fiel die Weckwort-Erkennung sonst zeitweise aus
-         (Doreen, 31.07.2026). Normale Berechtigung, keine Nachfrage. -->
+         (Rueckmeldung vom 31.07.2026). Normale Berechtigung, keine
+         Nachfrage. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- v0.31: Standort mitschicken, damit Empfehlungen unterwegs am
-         richtigen Ort suchen ("egal an welchem Ort ich bin", 04.08.2026).
-         FINE = strassengenau (ihre Entscheidung), COARSE als Rueckfall, wenn
-         sie nur den ungefaehren Ort erlaubt - daraus wird immerhin noch der
+         richtigen Ort suchen (Wunsch vom 04.08.2026: verlaessliche
+         Auskunft, egal an welchem Ort man gerade ist).
+         FINE = strassengenau (so entschieden), COARSE als Rueckfall, wenn
+         nur der ungefaehre Ort erlaubt wird - daraus wird immerhin noch der
          Stadtteil. Ohne die Erlaubnis geht schlicht kein Ort mit, und alles
          verhaelt sich wie vor v0.31.
          BEWUSST NICHT beantragt: ACCESS_BACKGROUND_LOCATION ("immer

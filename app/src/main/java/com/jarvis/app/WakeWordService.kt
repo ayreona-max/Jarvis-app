@@ -56,17 +56,15 @@ class WakeWordService : Service() {
         // Standard 0,5; hoeher = weniger Fehlalarme, dafuer muss man
         // deutlicher sprechen).
         // Am 26.07.2026 von 0,5 auf 0,65 angehoben: An diesem Tag loeste das
-        // Weckwort NEUNMAL aus, waehrend Doreen sich mit anderen Menschen
-        // unterhielt - Jarvis nahm Gespraechsfetzen auf und antwortete darauf
-        // ("Wenn du vertretest, hast du ja also deinem Friseur"). Alle neun
+        // Weckwort NEUNMAL aus, waehrend im Raum ein Gespraech lief - Jarvis
+        // nahm Gespraechsfetzen auf und antwortete darauf. Alle neun
         // Faelle sind im Transkript des Orchestrators belegt.
-        // Am 29.07.2026 auf 0,55 zurueckgenommen: 0,65 war zu streng. Doreen
-        // musste "Hey Jarvis" mehrfach wiederholen, und einmal loeste es erst
-        // MITTEN in ihrem naechsten Satz aus - im Transkript kam nur noch
-        // "DEKRA, Hauptuntersuchung, Hyundai Kona, Parqet," an, ein Fetzen
-        // ohne Anfang. Das sah wie ein Fehlalarm aus, war aber ein VERSPAETETER
-        // Treffer: dasselbe Problem wie das Nicht-Ansprechen, nicht das
-        // Gegenteil davon.
+        // Am 29.07.2026 auf 0,55 zurueckgenommen: 0,65 war zu streng.
+        // "Hey Jarvis" musste mehrfach wiederholt werden, und einmal loeste
+        // es erst MITTEN im naechsten Satz aus - im Transkript kam nur
+        // dessen zweite Haelfte an, ein Fetzen ohne Anfang. Das sah wie ein
+        // Fehlalarm aus, war aber ein VERSPAETETER Treffer: dasselbe Problem
+        // wie das Nicht-Ansprechen, nicht das Gegenteil davon.
         //
         // BESTAETIGUNGEN bleibt bei 2 - das ist ohnehin der wirksamere Filter
         // (ein Fehlalarm ist ein einzelner Zufallstreffer, ein echtes
@@ -92,14 +90,15 @@ class WakeWordService : Service() {
         // Grund: Bis v0.18 wurde nach dem Weckwort das Mikrofon FREIGEGEBEN
         // und ein zweiter Rekorder (MediaRecorder) neu aufgebaut. Dieser
         // Wechsel dauert auf dem Galaxy ein halbe bis eine ganze Sekunde, und
-        // in dieser Zeit wurde nichts aufgezeichnet - Doreens Satzanfang fiel
-        // heraus. Belegt im Transkript vom 27.07.2026: "Wann haben wir den
-        // Termin mit Bettina?" kam als "Wir haben den Termin mit Bettina." an,
-        // "Was ist mit dem EU-AI-Akt?" als "Mit dem EU-AI-Akt." Die Folge war
-        // nicht nur ein fehlendes Wort: Der Router stuft das Bruchstueck als
-        // "keine Quelle" ein, Jarvis bekommt also gar keine Kalenderdaten und
-        // MUSS zurueckfragen. Solange es den Piep gab, hat sie unbewusst
-        // darauf gewartet; seit dem Abschalten (v0.18) faellt es voll durch.
+        // in dieser Zeit wurde nichts aufgezeichnet - der Satzanfang fiel
+        // heraus. Belegt im Transkript vom 27.07.2026: Aus einer Frage nach
+        // einem Kalendertermin ("Wann haben wir ...?") wurde beim Server eine
+        // Aussage ("Wir haben ..."), aus einer Sachfrage ("Was ist mit ...?")
+        // nur das Stichwort. Die Folge war nicht nur ein fehlendes Wort: Der
+        // Router stuft das Bruchstueck als "keine Quelle" ein, Jarvis bekommt
+        // also gar keine Kalenderdaten und MUSS zurueckfragen. Solange es den
+        // Piep gab, wurde unbewusst darauf gewartet; seit dem Abschalten
+        // (v0.18) faellt es voll durch.
         //
         // Seit v0.19 wird die Frage aus DEMSELBEN, weiterlaufenden Strom
         // aufgenommen (kein Rekorderwechsel, keine Luecke), und der Vorlauf
@@ -114,12 +113,12 @@ class WakeWordService : Service() {
         // ueberhaupt gesprochen wurde), Obergrenze darunter.
         private const val STILLE_ENDE_MS = 1300
         // Obergrenze der Aufnahme. Am 27.07.2026 von 10 s auf 30 s erhoeht:
-        // Doreens Zuruf "Lege einen neuen Ordner in Gmail an, DEKRA, und
-        // verschiebe die beiden E-Mails im Posteingang in den ..." brach
-        // mitten im Satz ab. Nicht wegen einer Sprechpause - im Log stand
-        // eine Aufnahmedauer von exakt 11,000 s (1 s Vorlauf + 10 s Deckel),
-        // dreimal an diesem Nachmittag. Ihre Saetze sind laenger geworden,
-        // seit Jarvis mehrstufige Auftraege annimmt.
+        // Ein mehrstufiger Zuruf (einen Ordner anlegen UND mehrere E-Mails
+        // dorthin verschieben) brach mitten im Satz ab. Nicht wegen einer
+        // Sprechpause - im Log stand eine Aufnahmedauer von exakt 11,000 s
+        // (1 s Vorlauf + 10 s Deckel), dreimal an diesem Nachmittag. Die
+        // Saetze sind laenger geworden, seit Jarvis mehrstufige Auftraege
+        // annimmt.
         // Die Stille-Erkennung beendet die Aufnahme ohnehin 1,3 s nach dem
         // letzten Wort; dieser Deckel greift nur, wenn wirklich
         // durchgesprochen wird. Ein Fehlalarm im Raumgespraech kostet damit
@@ -128,14 +127,14 @@ class WakeWordService : Service() {
         // praktisch abgestellt haben.
         private const val AUFNAHME_MAX_MS = 30_000
         // NACHFASS-FENSTER (v0.21): So lange bleibt das Mikrofon nach der
-        // Antwort offen, damit Doreen ohne erneutes "Hey Jarvis" weiterreden
+        // Antwort offen, damit man ohne erneutes "Hey Jarvis" weiterreden
         // kann. 7 s ist lang genug zum Nachdenken und kurz genug, dass das
         // Mikrofon nicht gefuehlt dauernd offen ist.
         private const val NACHFASS_FENSTER_MS = 7_000
         // So viele Bloecke (a 80 ms) muessen IN FOLGE ueber dem Sprachpegel
-        // liegen, damit das Fenster als "sie spricht" gilt. Drei Bloecke =
-        // 240 ms - ein Klappern oder Huesteln reicht damit nicht. Gleiche
-        // Idee wie BESTAETIGUNGEN beim Weckwort.
+        // liegen, damit das Fenster als "es wird gesprochen" gilt. Drei
+        // Bloecke = 240 ms - ein Klappern oder Huesteln reicht damit nicht.
+        // Gleiche Idee wie BESTAETIGUNGEN beim Weckwort.
         private const val NACHFASS_ONSET_BLOECKE = 3
         // Kuerzer als das hier (WAV-Kopf + ~1 s Ton) wird gar nicht erst
         // gesendet - dann war es doch nur ein Geraeusch.
@@ -159,8 +158,8 @@ class WakeWordService : Service() {
     /**
      * Haelt die CPU wach, solange gelauscht wird.
      *
-     * ENTDECKT AM 31.07.2026 (Doreen: "reagiert zu haeufig nicht, gerade da
-     * ich ihn ja auch aufrufen können will, wenn der Bildschirm aus ist").
+     * ENTDECKT AM 31.07.2026: Rueckmeldung, der Dienst reagiere zu haeufig
+     * nicht - gerade dann, wenn der Bildschirm aus ist.
      * Ein Vordergrunddienst schuetzt den PROZESS davor, beendet zu werden -
      * er garantiert aber NICHT, dass die CPU laeuft. Bei ausgeschaltetem
      * Bildschirm darf das System den Anwendungsprozessor schlafen legen;
@@ -241,8 +240,8 @@ class WakeWordService : Service() {
         try {
             val prefs = getSharedPreferences("jarvis", Context.MODE_PRIVATE)
             if (!ueberschreibeFehler) {
-                // Eine FEHLER-Meldung muss stehen bleiben, bis Doreen sie
-                // gelesen hat - "Dienst beendet." darf sie nicht verdraengen
+                // Eine FEHLER-Meldung muss stehen bleiben, bis sie gelesen
+                // wurde - "Dienst beendet." darf sie nicht verdraengen
                 // (genau das passierte beim ersten v0.7-Test: die Meldung
                 // "ploppte nur kurz auf").
                 val aktuell = prefs.getString("wake_status", "") ?: ""
@@ -273,8 +272,8 @@ class WakeWordService : Service() {
      * (alle ~2,5 s). Waehrend einer Frage-Antwort-Runde lauscht der Dienst
      * aber NICHT (aufnehmen, senden, Antwort abspielen dauert leicht
      * ueber 30 s) – die App meldete dann faelschlich "DIENST LAEUFT NICHT",
-     * obwohl gerade alles korrekt lief (Doreen, 25.07.2026). Der Herzschlag
-     * bedeutet daher "der Dienst lebt", nicht "er lauscht gerade".
+     * obwohl gerade alles korrekt lief (Rueckmeldung vom 25.07.2026). Der
+     * Herzschlag bedeutet daher "der Dienst lebt", nicht "er lauscht gerade".
      */
     private fun starteHerzschlag() {
         if (herzschlagThread != null) return
@@ -327,7 +326,7 @@ class WakeWordService : Service() {
             // Ab Android 14 stuerzt startForeground mit einer SecurityException
             // ab, wenn ein Dienst den Typ "location" angibt, ohne die
             // Berechtigung zu haben - das wuerde das Weckwort komplett
-            // lahmlegen, nur weil sie die Ortung abgelehnt hat. Deshalb wird
+            // lahmlegen, nur weil die Ortung abgelehnt wurde. Deshalb wird
             // der Typ hier zur Laufzeit zusammengesetzt statt fest verdrahtet.
             var typ = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
             if (Standort.erlaubt(this)) {
@@ -373,12 +372,12 @@ class WakeWordService : Service() {
                     // Porcupine-Zeit).
                     meldeStatus("Weckwort erkannt – ich höre Ihre Frage …")
                     // JETZT den Ort bestimmen, nicht erst beim Senden (v0.31):
-                    // Der Vorgang laeuft im Hintergrund, waehrend sie spricht -
-                    // ihre Frage dauert typischerweise drei bis acht Sekunden,
-                    // in denen ein Fix meist laengst da ist. Beim Senden wird
-                    // nur noch abgelesen, was im Zwischenspeicher liegt; die
-                    // muehsam erarbeiteten ~5 s bis zum ersten gesprochenen
-                    // Wort bleiben damit unangetastet.
+                    // Der Vorgang laeuft im Hintergrund, waehrend gesprochen
+                    // wird - eine Frage dauert typischerweise drei bis acht
+                    // Sekunden, in denen ein Fix meist laengst da ist. Beim
+                    // Senden wird nur noch abgelesen, was im Zwischenspeicher
+                    // liegt; die muehsam erarbeiteten ~5 s bis zum ersten
+                    // gesprochenen Wort bleiben damit unangetastet.
                     Standort.anstossen(this)
                     ton(ToneGenerator.TONE_PROP_BEEP)
                     var frage = nimmFrageAufAusStrom()
@@ -387,23 +386,23 @@ class WakeWordService : Service() {
                     }
                     // Frage -> Antwort -> Nachfass-Fenster -> ggf. naechste
                     // Frage, ohne erneutes Weckwort (v0.21). Das Fenster
-                    // schliesst sich von selbst, wenn sie nichts mehr sagt.
-                    // Die ERSTE Frage folgt auf ihr "Hey Jarvis" - sie hat ihn
-                    // also bewusst gerufen. Alles Weitere stammt aus dem
+                    // schliesst sich von selbst, wenn nichts mehr gesagt wird.
+                    // Die ERSTE Frage folgt auf ein "Hey Jarvis" - Jarvis
+                    // wurde also bewusst gerufen. Alles Weitere stammt aus dem
                     // Nachfass-Fenster und ist spekulativ: Dort darf ein
                     // unverstaendlicher Fetzen nicht kommentiert werden.
                     // HOECHSTENS EINE Nachfrage pro Weckwort (v0.30, 02.08.2026).
                     //
                     // Vorher lief hier eine offene Kette: Nach JEDER Antwort
-                    // ging das Fenster erneut auf. Am 02.08. sagte Doreen ihr
-                    // Weckwort versehentlich, waehrend sie jemandem VON Jarvis
-                    // erzaehlte - danach hielt jedes Wort im Raum, das
-                    // innerhalb von 7 Sekunden fiel, die Kette am Laufen: 17
+                    // ging das Fenster erneut auf. Am 02.08. fiel das Weckwort
+                    // versehentlich in einem Gespraech UEBER Jarvis - danach
+                    // hielt jedes Wort im Raum, das innerhalb von 7 Sekunden
+                    // fiel, die Kette am Laufen: 17
                     // mitgeschnittene Wortwechsel ueber 17 Minuten, mitten in
                     // einem fremden Gespraech (Transkript 12:14 bis 12:31).
                     //
                     // Die schnelle Rueckfrage bleibt erhalten - genau dafuer
-                    // wollte sie das Fenster -, aber die Kette ist an der
+                    // gibt es das Fenster -, aber die Kette ist an der
                     // Wurzel gekappt: Danach braucht es wieder "Hey Jarvis".
                     var ausNachfass = false
                     while (aktiv && frage != null && frage.length() > 0) {
@@ -562,8 +561,8 @@ class WakeWordService : Service() {
      *
      * Laeuft als eigener Thread neben dem Lauschen. Kein Push-Dienst noetig,
      * weil dieser Dienst ohnehin dauerhaft laeuft; ein Firebase-Projekt,
-     * weitere Zugangsdaten und ein zusaetzlicher Anbieter bleiben Doreen
-     * damit erspart.
+     * weitere Zugangsdaten und ein zusaetzlicher Anbieter bleiben damit
+     * erspart.
      *
      * WICHTIG - die Benachrichtigung zeigt NUR den Titel, nie den Inhalt:
      * Sie erscheint auf dem gesperrten Bildschirm, bevor irgendeine
@@ -611,7 +610,7 @@ class WakeWordService : Service() {
      *
      * WICHTIG: Der Vorlauf zaehlt bewusst NICHT als "gesprochen" - sonst
      * wuerde das Weckwort selbst die Stille-Uhr starten und die Aufnahme
-     * abbrechen, waehrend Doreen nach dem Zuruf noch ueberlegt.
+     * abbrechen, waehrend nach dem Zuruf noch ueberlegt wird.
      */
     private fun nimmFrageAufAusStrom(): File? = aufnehmenAusStrom(vorlaufLesen())
 
@@ -679,9 +678,9 @@ class WakeWordService : Service() {
     }
 
     /**
-     * NACHFASS-FENSTER (v0.21, auf Doreens Wunsch): Nach Jarvis' Antwort
-     * bleibt das Mikrofon einige Sekunden offen. Spricht sie in dieser Zeit
-     * weiter, gilt das als naechste Frage – OHNE erneutes "Hey Jarvis".
+     * NACHFASS-FENSTER (v0.21, auf Wunsch): Nach Jarvis' Antwort bleibt das
+     * Mikrofon einige Sekunden offen. Wird in dieser Zeit weitergesprochen,
+     * gilt das als naechste Frage – OHNE erneutes "Hey Jarvis".
      * So wird aus Zuruf/Antwort ein Gespraech.
      *
      * Rueckgabe: die Aufnahme der Anschlussfrage, oder null, wenn im Fenster
@@ -739,7 +738,8 @@ class WakeWordService : Service() {
                 }
                 if (pegel > SPRACH_PEGEL) {
                     if (++ueberPegel >= NACHFASS_ONSET_BLOECKE) {
-                        // Sie spricht: ab hier normale Aufnahme, der Vorlauf
+                        // Es wird gesprochen: ab hier normale Aufnahme, der
+                        // Vorlauf
                         // enthaelt die schon gehoerten ersten Silben.
                         val aufnahme = aufnehmenAusStrom(vorlaufLesen())
                         if (aufnahme != null && aufnahme.length() < NACHFASS_MIN_BYTES) {
@@ -892,13 +892,13 @@ class WakeWordService : Service() {
     }
 
     /**
-     * Rueckmeldung an Doreen, dass der Zuruf angekommen ist - per VIBRATION,
+     * Rueckmeldung, dass der Zuruf angekommen ist - per VIBRATION,
      * nicht per Ton.
      *
      * Weg dahin: Urspruenglich lief der Piep ueber STREAM_NOTIFICATION und war
-     * unhoerbar, weil ihr Handy dauerhaft stumm ist. Am 26.07.2026 auf
-     * STREAM_MUSIC umgestellt - ihr Befund danach: "den Piep hoere ich nur,
-     * wenn der Ton an ist". Stimmt, der Medienkanal ist bei stummem Geraet
+     * unhoerbar, weil das Handy dauerhaft stumm geschaltet ist. Am 26.07.2026
+     * auf STREAM_MUSIC umgestellt - Befund danach: hoerbar nur bei
+     * eingeschaltetem Ton. Stimmt, der Medienkanal ist bei stummem Geraet
      * ebenfalls still. Vibration ist die einzige Rueckmeldung, die bei einem
      * dauerhaft stummen Handy zuverlaessig ankommt.
      *
@@ -906,11 +906,11 @@ class WakeWordService : Service() {
      * laengerer Impuls, die fertige Aufnahme ZWEI kurze.
      */
     private fun ton(art: Int) {
-        // AUS auf Doreens Wunsch (26.07.2026): "Der Piep ist insgesamt eher
-        // irritierend, das war vorher besser." Sie will gar keine
-        // Rueckmeldung - sie merkt am Sprechen, dass er zuhoert.
+        // AUS auf Wunsch (26.07.2026): Der Piep wurde als eher irritierend
+        // empfunden - gar keine Rueckmeldung ist gewuenscht, am Sprechen
+        // merkt man ohnehin, dass Jarvis zuhoert.
         // Bewusster Preis: Ohne den ersten Impuls ist nicht erkennbar, AB WANN
-        // aufgenommen wird. Faellt ihr das auf, reicht RUECKMELDUNG = true und
+        // aufgenommen wird. Faellt das auf, reicht RUECKMELDUNG = true und
         // ein Weglassen des ACK-Zweigs - dann kommt nur das Weckwort-Signal
         // zurueck. Deshalb bleibt der Code samt VIBRATE-Berechtigung stehen.
         if (!RUECKMELDUNG) return

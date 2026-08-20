@@ -84,7 +84,8 @@ class MainActivity : AppCompatActivity() {
                 // binnen einer Minute auf.
                 // Version mit anzeigen: Nach einem Sideload-Update war bisher
                 // nicht erkennbar, ob die neue Fassung wirklich laeuft - man
-                // musste in die Android-Einstellungen (Doreen, 26.07.2026).
+                // musste in die Android-Einstellungen (Rueckmeldung vom
+                // 26.07.2026).
                 val version = "v" + BuildConfig.VERSION_NAME
                 statusView?.text = when {
                     letztes > 0L && alter > 60_000 ->
@@ -328,11 +329,12 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().remove("letzter_absturz").apply()
         }
 
-        // Zugangsdaten standardmaessig ZU. Sie braucht sie nur einmal je
-        // Installation, aber sie stehen ganz oben und landen sonst auf jedem
-        // Screenshot - und Screenshots sind ihr wichtigstes Diagnosewerkzeug.
+        // Zugangsdaten standardmaessig ZU. Sie werden nur einmal je
+        // Installation gebraucht, stehen aber ganz oben und landen sonst auf
+        // jedem Screenshot - und Screenshots sind das wichtigste
+        // Diagnosewerkzeug im Alltag.
         // Beim ERSTEN Start (nichts gespeichert) klappt der Bereich von selbst
-        // auf, sonst stuende sie vor einer App ohne sichtbare Eingabefelder.
+        // auf, sonst stuende man vor einer App ohne sichtbare Eingabefelder.
         val zugangBereich = findViewById<android.widget.LinearLayout>(R.id.zugangBereich)
         val zugangToggle = findViewById<Button>(R.id.zugangToggle)
         val nochNichtEingerichtet = (prefs.getString("url", "") ?: "").isEmpty()
@@ -378,8 +380,8 @@ class MainActivity : AppCompatActivity() {
 
         // --- v0.31: Standort mitschicken -----------------------------------
         // Zwei Schalter muessen an sein: die Android-Berechtigung UND dieser
-        // hier. Tippt sie ihn an, ohne dass die Berechtigung vorliegt, wird
-        // sie danach gefragt; lehnt sie ab, bleibt der Haken einfach aus.
+        // hier. Wird er angetippt, ohne dass die Berechtigung vorliegt, fragt
+        // Android danach; wird abgelehnt, bleibt der Haken einfach aus.
         val standortSchalter = findViewById<android.widget.CheckBox>(R.id.standortSchalter)
         standortSchalter.isChecked = Standort.eingeschaltet(this) && Standort.erlaubt(this)
         standortSchalter.setOnClickListener {
@@ -492,8 +494,8 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Zeigt an, welchen Ort die App gerade kennt - damit im Alltag ohne
-     * Rateraten pruefbar ist, ob die Ortung liefert. Sie sieht hier genau
-     * den Text, der an Jarvis geht.
+     * Rateraten pruefbar ist, ob die Ortung liefert. Angezeigt wird genau
+     * der Text, der an Jarvis geht.
      */
     private fun zeigeStandort() {
         val feld = findViewById<TextView>(R.id.standortInfo) ?: return
@@ -862,7 +864,7 @@ class MainActivity : AppCompatActivity() {
         statusHandler.removeCallbacks(statusRunnable)
         statusHandler.post(statusRunnable)
         // Beim Oeffnen der App gleich einen frischen Ort anstossen (v0.31) -
-        // dann steht er schon bereit, wenn sie direkt danach etwas fragt.
+        // dann steht er schon bereit, wenn direkt danach etwas gefragt wird.
         Standort.anstossen(this)
         zeigeStandort()
         zeigePostfach()
@@ -919,9 +921,9 @@ class MainActivity : AppCompatActivity() {
                 text = n.text
                 textSize = 15f
                 setTextIsSelectable(true)   // zum Kopieren, z. B. Einkaufsliste
-                // Internetadressen antippbar machen (Doreens Entscheidung vom
+                // Internetadressen antippbar machen (Entscheidung vom
                 // 30.07.2026). Bis v0.27 standen Links hier nur als Text -
-                // sie haette sie abtippen muessen.
+                // sie mussten abgetippt werden.
                 //
                 // WICHTIG: Linkify NACH dem Setzen von `text` aufrufen. Die
                 // XML-/Property-Variante `autoLink` wirkt nur auf Text, der
@@ -929,7 +931,7 @@ class MainActivity : AppCompatActivity() {
                 // addLinks setzt die LinkMovementMethod gleich mit.
                 //
                 // Serverseitig entstehen solche Nachrichten NICHT, wenn die
-                // Antwort aus ihrem Postfach gebaut wurde (main._aus_dem_postfach) -
+                // Antwort aus dem Postfach gebaut wurde (main._aus_dem_postfach) -
                 // ein Link aus einer fremden Mail wird hier also gar nicht
                 // erst antippbar.
                 android.text.util.Linkify.addLinks(
@@ -951,8 +953,8 @@ class MainActivity : AppCompatActivity() {
                     text = "Löschen"
                     // Bewusst ohne Rückfrage: Es geht um EINE Zeile in einer
                     // Anzeige, nichts Unwiederbringliches - eine Nachfrage bei
-                    // jedem Antippen wäre genau die Zumutung, die sie am
-                    // 27.07. gerügt hat.
+                    // jedem Antippen wäre genau die Zumutung, die am
+                    // 27.07. gerügt wurde.
                     setOnClickListener {
                         Postfach.loeschen(this@MainActivity, n.id)
                         zeigePostfach()

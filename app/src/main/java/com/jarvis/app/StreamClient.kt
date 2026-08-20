@@ -120,7 +120,7 @@ object StreamClient {
         image: File? = null,
         /** true, wenn die Aufnahme aus dem Nachfass-Fenster stammt: Dann wird
          *  ein "nichts verstanden" stillschweigend verworfen, statt es
-         *  vorzulesen - sie hat Jarvis in dem Moment ja nicht gerufen. */
+         *  vorzulesen - Jarvis wurde in dem Moment ja nicht gerufen. */
         stillBeiUnverstanden: Boolean = false,
         /** Aufenthaltsort als Adresstext (v0.31), leer = wie bisher. Der
          *  Server nimmt dann ortsbezogene Fragen auf DIESEN Ort statt
@@ -214,7 +214,7 @@ object StreamClient {
                         "chunk" -> {
                             // Hat Whisper nichts verstanden, sagt der Server das
                             // mit "anlass": "nichts_verstanden". Kam die Aufnahme
-                            // aus dem NACHFASS-Fenster, hat Doreen Jarvis gar
+                            // aus dem NACHFASS-Fenster, wurde Jarvis gar
                             // nicht gerufen - das Fenster stand nur offen und hat
                             // ein Geraeusch aufgeschnappt. Dann bleibt er still
                             // und lauscht weiter; sonst wuerde er jedes Rascheln

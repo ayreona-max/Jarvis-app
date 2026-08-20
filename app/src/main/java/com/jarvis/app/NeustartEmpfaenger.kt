@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
  *    weiter auf "aktiv", aber auf "Hey Jarvis" kam nichts mehr, und beim
  *    Server ging keine einzige Anfrage ein.
  *
- * Nur wenn Doreen das Lauschen vorher eingeschaltet hatte (Merker
+ * Nur wenn das Lauschen vorher eingeschaltet war (Merker
  * "wake_aktiv"), wird neu gestartet – ein bewusst gestopptes Lauschen
  * bleibt gestoppt. Der Postfach-Hintergrundabruf (PostfachSyncWorker)
  * wird davon UNABHAENGIG immer neu angemeldet (14.08.2026).

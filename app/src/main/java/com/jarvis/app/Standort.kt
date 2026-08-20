@@ -19,13 +19,13 @@ import kotlin.concurrent.thread
 /**
  * v0.31: Der aktuelle Aufenthaltsort wird als ADRESSTEXT mitgeschickt.
  *
- * Doreens Wunsch vom 04.08.2026: "Es ergeben sich unterwegs zeitliche Puffer,
- * die ich mit einem Restaurantbesuch fuelle - ich brauche ihn dann als
- * verlaessliche Info-Quelle, standortgenau, egal an welchem Ort ich bin."
+ * Wunsch vom 04.08.2026: Unterwegs entstehen zeitliche Puffer, die mit einem
+ * Restaurantbesuch gefuellt werden - Jarvis soll dann eine verlaessliche,
+ * standortgenaue Auskunft geben, egal an welchem Ort man gerade ist.
  * Der Server laeuft auf dem Laptop zu Hause und kann das von sich aus nicht
  * wissen. Die zuerst gebaute Server-Regel "fehlt der Ort, nimm den Wohnort an"
  * wurde genau deshalb sofort zurueckgenommen: Sie haette Berliner Lokale
- * genannt, waehrend sie in Hamburg steht.
+ * genannt, waehrend das Handy in Hamburg steht.
  *
  * ORTSNAME STATT KOORDINATEN - bewusst so:
  * Was den Laptop erreicht, ist "Bahrenfelder Straße 12, 22765 Hamburg-Ottensen",
@@ -34,22 +34,22 @@ import kotlin.concurrent.thread
  * EHRLICH DAZU: Dieser Geocoder rechnet nicht rein oertlich - er fragt im
  * Regelfall den Dienst des Geraeteherstellers bzw. Google. Der Gewinn ist
  * trotzdem echt, nur kleiner als "niemand sieht die Koordinaten": Es kommt
- * KEIN zusaetzlicher Anbieter hinzu, denn das Betriebssystem kennt ihre
+ * KEIN zusaetzlicher Anbieter hinzu, denn das Betriebssystem kennt die
  * Position ohnehin. Wuerden wir stattdessen Koordinaten an den Server schicken,
  * muesste DER sie bei einem Kartendienst aufloesen - also eine Stelle mehr, die
- * Doreens Aufenthaltsort erfaehrt.
+ * den Aufenthaltsort erfaehrt.
  *
  * ZWEI SCHALTER, beide muessen an sein:
- *   1. die Android-Berechtigung (sie erteilt sie einmal), und
- *   2. der Schalter in der App - damit sie den Ort abstellen kann, ohne die
+ *   1. die Android-Berechtigung (einmalig zu erteilen), und
+ *   2. der Schalter in der App - damit der Ort abstellbar ist, ohne die
  *      Berechtigung zurueckzunehmen.
  * Fehlt einer von beiden, geht schlicht kein Feld mit, und der Server verhaelt
  * sich exakt wie vor v0.31 (er fragt dann bei ortsbezogenen Fragen nach).
  *
  * KEINE LATENZ IM GESPRAECH: Ein Positionsfix dauert Sekunden - die duerfen
  * nicht zu den ~5 s bis zum ersten gesprochenen Wort dazukommen. Deshalb wird
- * der Fix ANGESTOSSEN, sobald das Weckwort faellt, und laeuft, waehrend sie
- * ihre Frage spricht. Gesendet wird immer nur das, was zu diesem Zeitpunkt
+ * der Fix ANGESTOSSEN, sobald das Weckwort faellt, und laeuft, waehrend die
+ * Frage gesprochen wird. Gesendet wird immer nur das, was zu diesem Zeitpunkt
  * schon im Zwischenspeicher liegt.
  */
 object Standort {
@@ -62,7 +62,7 @@ object Standort {
 
     /**
      * So alt darf ein Ort hoechstens sein, um noch mitgeschickt zu werden.
-     * Zehn Minuten sind ein Kompromiss: Im Auto ist sie in der Zeit ein
+     * Zehn Minuten sind ein Kompromiss: Im Auto ist man in der Zeit ein
      * gutes Stueck weiter, aber eine Empfehlung bezieht sich auf einen
      * Stadtteil, nicht auf eine Hausnummer. Und der Anstoss beim Weckwort
      * sorgt dafuer, dass der Wert im Normalfall Sekunden alt ist.
@@ -93,7 +93,7 @@ object Standort {
                ja(Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 
-    /** Der Schalter in der App. Standard: an - sie hat die Ortung ausdruecklich
+    /** Der Schalter in der App. Standard: an - die Ortung wurde ausdruecklich
      *  gewuenscht, und ohne die Berechtigung passiert ohnehin nichts. */
     fun eingeschaltet(ctx: Context): Boolean =
         prefs(ctx).getBoolean(FELD_AN, true)
@@ -102,8 +102,8 @@ object Standort {
         prefs(ctx).edit().putBoolean(FELD_AN, an).apply()
         if (!an) {
             // Beim Ausschalten den gespeicherten Ort mitentfernen - sonst
-            // laege er noch bis zu zehn Minuten auf dem Geraet, obwohl sie
-            // die Ortung gerade abgestellt hat.
+            // laege er noch bis zu zehn Minuten auf dem Geraet, obwohl die
+            // Ortung gerade abgestellt wurde.
             prefs(ctx).edit().remove(FELD_TEXT).remove(FELD_ZEIT).apply()
         }
     }
@@ -130,8 +130,8 @@ object Standort {
 
     /**
      * Stoesst im Hintergrund einen frischen Fix an. Kehrt sofort zurueck.
-     * Aufgerufen beim Weckwort (dann laeuft die Messung, waehrend sie
-     * spricht), beim Oeffnen der App und vor dem Senden.
+     * Aufgerufen beim Weckwort (dann laeuft die Messung, waehrend die Frage
+     * gesprochen wird), beim Oeffnen der App und vor dem Senden.
      */
     fun anstossen(ctx: Context) {
         if (!erlaubt(ctx) || !eingeschaltet(ctx)) return
@@ -176,7 +176,7 @@ object Standort {
             if (l != null && (best == null || l.time > best!!.time)) best = l
         }
         // Ein uralter Fix ist schlechter als keiner: Er wuerde Jarvis in dem
-        // Glauben lassen, er wisse, wo sie ist.
+        // Glauben lassen, er wisse, wo das Handy ist.
         if (best != null && System.currentTimeMillis() - best!!.time > HALTBAR_MS) return null
         return best
     }
