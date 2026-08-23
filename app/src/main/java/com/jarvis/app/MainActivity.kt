@@ -917,16 +917,33 @@ class MainActivity : AppCompatActivity() {
             }
         })
         val format = java.text.SimpleDateFormat("dd.MM., HH:mm", java.util.Locale.GERMANY)
+        val dichte = resources.displayMetrics.density
         nachrichten.forEach { n ->
-            liste.addView(TextView(this).apply {
+            // Jede Nachricht bekommt jetzt einen eigenen Panel-Wrapper statt
+            // drei einzelne Kinder direkt in `liste` zu haengen (23.08.2026,
+            // siehe PLAN-JARVIS-APP-REDESIGN.md) - reine Optik, dieselben
+            // drei Bestandteile (Titel, Text, Knopfreihe) wie vorher.
+            val eintrag = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setBackgroundResource(R.drawable.postfach_eintrag_background)
+                val innenabstand = (10 * dichte).toInt()
+                setPadding(innenabstand, innenabstand, innenabstand, innenabstand)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = (8 * dichte).toInt() }
+            }
+            eintrag.addView(TextView(this).apply {
                 text = "${n.titel} · ${format.format(java.util.Date(n.zeit))}"
                 textSize = 15f
                 setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(0, 20, 0, 2)
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.jarvis_text_primary))
             })
-            liste.addView(TextView(this).apply {
+            eintrag.addView(TextView(this).apply {
                 text = n.text
                 textSize = 15f
+                setPadding(0, (4 * dichte).toInt(), 0, 0)
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.jarvis_text_secondary))
                 setTextIsSelectable(true)   // zum Kopieren, z. B. Einkaufsliste
                 // Internetadressen antippbar machen (Entscheidung vom
                 // 30.07.2026). Bis v0.27 standen Links hier nur als Text -
@@ -947,8 +964,9 @@ class MainActivity : AppCompatActivity() {
             })
             // Anhören und Löschen nebeneinander, damit eine Nachricht nicht
             // über zwei Knopfreihen auseinanderläuft.
-            liste.addView(android.widget.LinearLayout(this).apply {
+            eintrag.addView(android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.HORIZONTAL
+                setPadding(0, (6 * dichte).toInt(), 0, 0)
                 val audio = n.audioDatei
                 if (audio != null && File(audio).exists()) {
                     addView(Button(this@MainActivity).apply {
@@ -968,6 +986,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 })
             })
+            liste.addView(eintrag)
         }
     }
 
