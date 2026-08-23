@@ -1,4 +1,4 @@
-package com.jarvis.app
+﻿package com.jarvis.app
 
 import android.Manifest
 import android.content.Context
@@ -421,12 +421,12 @@ class MainActivity : AppCompatActivity() {
         val wakeButton = findViewById<Button>(R.id.wakeButton)
 
         fun setzeWakeText() {
-            val aktiv = prefs.getBoolean(“wake_aktiv”, false)
+            val aktiv = prefs.getBoolean("wake_aktiv", false)
             // Kurzes Label statt ganzer Saetze - passt jetzt unter ein
             // Icon in der Icon-Leiste (23.08.2026, siehe
             // PLAN-JARVIS-APP-REDESIGN.md). Der ausfuehrliche Status steht
             // weiterhin in wakeStatusView (siehe statusRunnable oben).
-            wakeButton.text = if (aktiv) “Stopp” else “Hey Jarvis”
+            wakeButton.text = if (aktiv) "Stopp" else "Hey Jarvis"
             wakeButton.isActivated = aktiv
         }
         setzeWakeText()
@@ -460,7 +460,7 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.startForegroundService(this, Intent(this, WakeWordService::class.java))
             prefs.edit().putBoolean("wake_aktiv", true).apply()
             setzeWakeText()
-            answerView.text = "Jarvis lauscht jetzt im Hintergrund. Sagen Sie „Hey Jarvis”, " +
+            answerView.text = "Jarvis lauscht jetzt im Hintergrund. Sagen Sie „Hey Jarvis", " +
                 "warten Sie auf den Piep, und sprechen Sie dann Ihre Frage. " +
                 "Der Dienst-Zustand erscheint unter den Knöpfen."
             statusHandler.removeCallbacks(statusRunnable)
