@@ -1,4 +1,4 @@
-package com.jarvis.app
+﻿package com.jarvis.app
 
 import android.Manifest
 import android.content.Context
@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private var isRecording = false
     private var player: MediaPlayer? = null
 
-    // Live-Diagnose des "Hey Jarvis”-Dienstes: Der Dienst schreibt seinen
+    // Live-Diagnose des "Hey Jarvis"-Dienstes: Der Dienst schreibt seinen
     // Zustand (laeuft / Erkennungswert / Fehler im Klartext) in die
     // SharedPreferences, wir zeigen ihn jede Sekunde an. Ohne das waren
     // Dienst-Fehler auf dem Handy komplett unsichtbar (v0.6-Lektion).
