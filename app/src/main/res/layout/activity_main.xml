@@ -97,11 +97,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:baselineAligned="false"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginEnd="5dp"
                 app:cardBackgroundColor="@color/jarvis_panel_fill"
@@ -143,7 +144,7 @@
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginStart="5dp"
                 app:cardBackgroundColor="@color/jarvis_panel_fill"
@@ -206,7 +207,7 @@
             android:orientation="horizontal"
             android:layout_marginTop="12dp">
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/sendButton"
                 style="@style/Widget.Jarvis.DockButton"
                 android:layout_width="0dp"
@@ -215,7 +216,7 @@
                 android:drawableTop="@drawable/ic_senden"
                 android:text="Senden" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/talkButton"
                 style="@style/Widget.Jarvis.DockButton"
                 android:layout_width="0dp"
@@ -224,7 +225,7 @@
                 android:drawableTop="@drawable/ic_mikrofon"
                 android:text="Sprechen" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/cameraButton"
                 style="@style/Widget.Jarvis.DockButton"
                 android:layout_width="0dp"
@@ -233,7 +234,7 @@
                 android:drawableTop="@drawable/ic_kamera"
                 android:text="Foto" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/wakeButton"
                 style="@style/Widget.Jarvis.DockButton"
                 android:layout_width="0dp"
@@ -242,7 +243,7 @@
                 android:drawableTop="@drawable/ic_wecken"
                 android:text="Hey Jarvis" />
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/syncButton"
                 style="@style/Widget.Jarvis.DockButton"
                 android:layout_width="0dp"

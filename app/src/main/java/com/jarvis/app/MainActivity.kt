@@ -89,10 +89,9 @@ class MainActivity : AppCompatActivity() {
                 val version = "v" + BuildConfig.VERSION_NAME
                 statusView?.text = when {
                     letztes > 0L && alter > 60_000 ->
-                        "Hey Jarvis ($version): DIENST LÄUFT NICHT (keine Rückmeldung seit " +
-                        "${alter / 1000} s) – einmal stoppen und neu aktivieren."
-                    status.isEmpty() -> "Hey Jarvis ($version): (noch keine Meldung vom Dienst)"
-                    else -> "Hey Jarvis ($version): $status"
+                        "$version: LÄUFT NICHT (${alter / 1000}s) – neu aktivieren."
+                    status.isEmpty() -> "$version: noch keine Meldung"
+                    else -> "$version: $status"
                 }
                 statusHandler.postDelayed(this, 1000)
             } else {
@@ -943,7 +942,7 @@ class MainActivity : AppCompatActivity() {
                 text = n.text
                 textSize = 15f
                 setPadding(0, (4 * dichte).toInt(), 0, 0)
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.jarvis_text_secondary))
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.jarvis_text_primary))
                 setTextIsSelectable(true)   // zum Kopieren, z. B. Einkaufsliste
                 // Internetadressen antippbar machen (Entscheidung vom
                 // 30.07.2026). Bis v0.27 standen Links hier nur als Text -

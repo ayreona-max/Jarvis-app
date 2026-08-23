@@ -7,7 +7,7 @@
          UND android:windowBackground werden beide gesetzt: der
          Sperrbildschirm (activity_main.xml, sperrschirm) referenziert
          explizit ?android:attr/colorBackground. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/jarvis_accent</item>
         <item name="colorPrimaryDark">@color/jarvis_bg</item>
         <item name="colorAccent">@color/jarvis_accent</item>
@@ -16,6 +16,7 @@
         <item name="android:colorBackground">@color/jarvis_bg</item>
         <item name="android:textColorPrimary">@color/jarvis_text_primary</item>
         <item name="android:textColorSecondary">@color/jarvis_text_secondary</item>
+        <item name="android:textColorHint">@color/jarvis_text_secondary</item>
         <item name="android:fontFamily">@font/rajdhani</item>
         <item name="fontFamily">@font/rajdhani</item>
     </style>
