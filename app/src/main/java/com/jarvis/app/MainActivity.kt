@@ -1,4 +1,4 @@
-﻿package com.jarvis.app
+package com.jarvis.app
 
 import android.Manifest
 import android.content.Context
