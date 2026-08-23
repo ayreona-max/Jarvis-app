@@ -16,5 +16,7 @@
         <item name="android:colorBackground">@color/jarvis_bg</item>
         <item name="android:textColorPrimary">@color/jarvis_text_primary</item>
         <item name="android:textColorSecondary">@color/jarvis_text_secondary</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+        <item name="fontFamily">@font/rajdhani</item>
     </style>
 </resources>
