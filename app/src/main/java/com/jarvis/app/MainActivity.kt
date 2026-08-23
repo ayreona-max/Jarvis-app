@@ -1,4 +1,4 @@
-﻿package com.jarvis.app
+package com.jarvis.app
 
 import android.Manifest
 import android.content.Context
@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private var isRecording = false
     private var player: MediaPlayer? = null
 
-    // Live-Diagnose des "Hey Jarvis"-Dienstes: Der Dienst schreibt seinen
+    // Live-Diagnose des "Hey Jarvis”-Dienstes: Der Dienst schreibt seinen
     // Zustand (laeuft / Erkennungswert / Fehler im Klartext) in die
     // SharedPreferences, wir zeigen ihn jede Sekunde an. Ohne das waren
     // Dienst-Fehler auf dem Handy komplett unsichtbar (v0.6-Lektion).
@@ -460,7 +460,7 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.startForegroundService(this, Intent(this, WakeWordService::class.java))
             prefs.edit().putBoolean("wake_aktiv", true).apply()
             setzeWakeText()
-            answerView.text = "Jarvis lauscht jetzt im Hintergrund. Sagen Sie „Hey Jarvis", " +
+            answerView.text = "Jarvis lauscht jetzt im Hintergrund. Sagen Sie „Hey Jarvis”, " +
                 "warten Sie auf den Piep, und sprechen Sie dann Ihre Frage. " +
                 "Der Dienst-Zustand erscheint unter den Knöpfen."
             statusHandler.removeCallbacks(statusRunnable)
