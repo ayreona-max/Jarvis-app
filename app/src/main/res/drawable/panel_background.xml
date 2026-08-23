@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Einfacher Panel-Hintergrund fuers Nachrichtenfeld (messageText) - im
+     Gegensatz zu den MaterialCardView-Kacheln bewusst nur gleichmaessig
+     abgerundet statt mit angeschnittener Ecke: ein einzelnes Eingabefeld
+     traegt den staerkeren Kachel-Akzent nicht so gut wie Standort-/
+     Antwort-/Nachrichtenliste-Bloecke (23.08.2026, siehe
+     PLAN-JARVIS-APP-REDESIGN.md). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/jarvis_panel_fill" />
+    <stroke android:width="2dp" android:color="@color/jarvis_panel_border" />
+    <corners android:radius="10dp" />
+</shape>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hintergrund fuer die fuenf Icon-Leisten-Chips (23.08.2026, siehe
+     PLAN-JARVIS-APP-REDESIGN.md) - abgerundete Fuellkachel.
+     state_activated (talkButton waehrend Aufnahme, wakeButton waehrend
+     "Hey Jarvis" laeuft) = volle Akzent-Fuellung statt nur Umriss,
+     state_pressed liefert Ripple-Feedback. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/jarvis_ripple">
+    <item>
+        <selector>
+            <item android:state_activated="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/jarvis_panel_fill_activated" />
+                    <stroke android:width="2dp" android:color="@color/jarvis_accent" />
+                    <corners android:radius="12dp" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/jarvis_panel_fill" />
+                    <stroke android:width="2dp" android:color="@color/jarvis_panel_border" />
+                    <corners android:radius="12dp" />
+                </shape>
+            </item>
+        </selector>
+    </item>
+</ripple>

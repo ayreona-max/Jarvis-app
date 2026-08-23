@@ -19,4 +19,42 @@
         <item name="android:fontFamily">@font/rajdhani</item>
         <item name="fontFamily">@font/rajdhani</item>
     </style>
+
+    <!-- Kachel-Form fuer Standort/Hey-Jarvis/Antwort/Nachrichtenliste -
+         angeschnittene Ecke oben-links und unten-rechts (Option C
+         "Techwear" aus dem Mockup-Vergleich, siehe
+         PLAN-JARVIS-APP-REDESIGN.md). Die beiden anderen Ecken bleiben
+         eckig (Groesse 0). -->
+    <style name="ShapeAppearance.Jarvis.Kachel" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamilyTopLeft">cut</item>
+        <item name="cornerSizeTopLeft">14dp</item>
+        <item name="cornerFamilyBottomRight">cut</item>
+        <item name="cornerSizeBottomRight">14dp</item>
+        <item name="cornerFamilyTopRight">rounded</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerFamilyBottomLeft">rounded</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
+
+    <!-- Icon-Leisten-Chip fuer die fuenf Haupt-Aktionen - loest
+         Widget.Jarvis.HudButton (Volltext-Buttons, bis 22.08.2026) ab.
+         stateListAnimator/elevation auf 0 wie beim Vorgaenger, sonst legt
+         AppCompat/Material einen Schatten beim Draufdruecken drueber. -->
+    <style name="Widget.Jarvis.DockButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/dock_button_background</item>
+        <item name="android:textColor">@color/dock_text_color</item>
+        <item name="android:drawableTint">@color/dock_icon_tint</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:drawablePadding">4dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:paddingStart">2dp</item>
+        <item name="android:paddingEnd">2dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+    </style>
 </resources>

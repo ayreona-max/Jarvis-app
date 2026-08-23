@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Label-Farbe im Dock - gleiche Logik wie dock_icon_tint.xml. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/jarvis_bg" android:state_activated="true" />
+    <item android:color="@color/jarvis_text_secondary" />
+</selector>
