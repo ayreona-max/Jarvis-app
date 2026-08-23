@@ -421,8 +421,12 @@ class MainActivity : AppCompatActivity() {
         val wakeButton = findViewById<Button>(R.id.wakeButton)
 
         fun setzeWakeText() {
-            val aktiv = prefs.getBoolean("wake_aktiv", false)
-            wakeButton.text = if (aktiv) "🔴 „Hey Jarvis” stoppen" else "🟢 „Hey Jarvis” aktivieren"
+            val aktiv = prefs.getBoolean(“wake_aktiv”, false)
+            // Kurzes Label statt ganzer Saetze - passt jetzt unter ein
+            // Icon in der Icon-Leiste (23.08.2026, siehe
+            // PLAN-JARVIS-APP-REDESIGN.md). Der ausfuehrliche Status steht
+            // weiterhin in wakeStatusView (siehe statusRunnable oben).
+            wakeButton.text = if (aktiv) “Stopp” else “Hey Jarvis”
             wakeButton.isActivated = aktiv
         }
         setzeWakeText()
@@ -625,7 +629,10 @@ class MainActivity : AppCompatActivity() {
             recorder = rec
             audioFile = file
             isRecording = true
-            talkButton.text = "⏹ Aufnahme läuft – zum Stoppen tippen"
+            // Kurzes Label statt ganzem Satz - answerView zeigt die
+            // ausfuehrliche Meldung direkt darunter (23.08.2026, siehe
+            // PLAN-JARVIS-APP-REDESIGN.md).
+            talkButton.text = "Stopp"
             talkButton.isActivated = true
             answerView.text = "Ich höre zu …"
             hudView.setZustand(HudZustand.HOERT_ZU)
@@ -644,7 +651,7 @@ class MainActivity : AppCompatActivity() {
         } finally {
             releaseRecorder()
         }
-        talkButton.text = "🎤 Sprechen"
+        talkButton.text = "Sprechen"
         talkButton.isActivated = false
         if (file == null || !file.exists() || file.length() == 0L) {
             hudView.setZustand(HudZustand.RUHT)
