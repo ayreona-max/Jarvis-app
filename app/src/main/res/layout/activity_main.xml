@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FrameLayout statt direkt ScrollView: der Sperrschirm liegt als eigene
-     Ebene OBEN drauf, damit er wirklich alles verdeckt, auch waehrend die
-     ScrollView noch scrollt. -->
+<!-- Magenta-HUD-Redesign, 23.08.2026 (siehe PLAN-JARVIS-APP-REDESIGN.md) -
+     komplette optische Ueberarbeitung. Alle bestehenden View-IDs bleiben
+     unveraendert, damit MainActivity.kt bis auf zwei kleine, dort
+     dokumentierte Textkuerzungen unangetastet bleibt. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -21,6 +23,9 @@
             android:layout_height="wrap_content"
             android:text="Jarvis"
             android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/jarvis_text_primary"
+            android:letterSpacing="0.08"
             android:paddingBottom="4dp" />
 
         <TextView
@@ -28,25 +33,19 @@
             android:layout_height="wrap_content"
             android:text="Sprich mit Jarvis oder tippe eine Nachricht."
             android:textSize="13sp"
+            android:textColor="@color/jarvis_text_secondary"
             android:paddingBottom="16dp" />
 
-        <!-- HUD-Gesicht (14.08.2026, siehe PLAN-JARVIS-HUD-GESICHT.md) -
-             zeigt Ruht/Hoert-zu/Denkt-nach/Antwortet, wird von
-             MainActivity ueber hudView.setZustand(...) gesteuert. -->
+        <!-- HUD-Gesicht - siehe HudView.kt fuer den seit 23.08.2026 neuen
+             Puls-Bogen-Kern. -->
         <com.jarvis.app.HudView
             android:id="@+id/hudView"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="16dp"
             android:importantForAccessibility="no" />
 
-        <!-- Zugangsdaten liegen hinter einem Schalter und sind standardmaessig
-             ZU. Sie braucht sie nur einmal je Installation, aber sie stehen
-             ganz oben und landen auf jedem Screenshot - und Screenshots sind
-             ihr wichtigstes Diagnosewerkzeug (die komplette Health-Sync-Suche
-             lief ueber Bildschirmfotos). Beim ersten Start ohne gespeicherte
-             Daten klappt der Bereich automatisch auf. -->
         <Button
             android:id="@+id/zugangToggle"
             android:layout_width="wrap_content"
@@ -66,6 +65,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Server-URL (z. B. https://...ngrok-free.dev)"
+                android:textColor="@color/jarvis_text_primary"
                 android:inputType="textUri" />
 
             <EditText
@@ -73,6 +73,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Zugangsschluessel"
+                android:textColor="@color/jarvis_text_primary"
                 android:inputType="textPassword"
                 android:paddingTop="8dp" />
 
@@ -81,125 +82,254 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Schluessel (E2E) - leer lassen = unverschluesselt"
+                android:textColor="@color/jarvis_text_primary"
                 android:inputType="textPassword"
                 android:paddingTop="8dp" />
         </LinearLayout>
 
+        <!-- Standort/Hey-Jarvis-Kacheln (ersetzt die fruehere reine
+             Checkbox-Zeile plus Fliesstext). standortSchalter/standortInfo/
+             wakeStatusView sind dieselben View-IDs wie vorher, wandern nur
+             optisch in die Kacheln - siehe PLAN-JARVIS-APP-REDESIGN.md,
+             Abschnitt "Bildschirm-Elemente" (dort auch die Begruendung,
+             warum hier KEIN erfundener Verbindungs-/Latenz-Wert steht). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="5dp"
+                app:cardBackgroundColor="@color/jarvis_panel_fill"
+                app:strokeColor="@color/jarvis_panel_border"
+                app:strokeWidth="2dp"
+                app:cardElevation="0dp"
+                app:shapeAppearance="@style/ShapeAppearance.Jarvis.Kachel">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="11dp">
+
+                    <!-- Text gekuerzt (vorher "Standort mitschicken (für
+                         Empfehlungen unterwegs)"), damit er in die
+                         schmalere Kachel passt - Bedeutung unveraendert,
+                         MainActivity.kt fragt weiterhin nur isChecked ab,
+                         nie den Text. -->
+                    <CheckBox
+                        android:id="@+id/standortSchalter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/jarvis_text_primary"
+                        android:text="Standort mitschicken" />
+
+                    <TextView
+                        android:id="@+id/standortInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="2dp"
+                        android:textSize="12sp"
+                        android:textStyle="italic"
+                        android:textColor="@color/jarvis_accent_bright"
+                        android:text="" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                app:cardBackgroundColor="@color/jarvis_panel_fill"
+                app:strokeColor="@color/jarvis_panel_border"
+                app:strokeWidth="2dp"
+                app:cardElevation="0dp"
+                app:shapeAppearance="@style/ShapeAppearance.Jarvis.Kachel">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="11dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="10sp"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.06"
+                        android:textColor="@color/jarvis_text_secondary"
+                        android:text="Hey Jarvis" />
+
+                    <TextView
+                        android:id="@+id/wakeStatusView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="2dp"
+                        android:textSize="12sp"
+                        android:textStyle="italic"
+                        android:textColor="@color/jarvis_accent_bright"
+                        android:text="" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Nachrichtenfeld als Konsolen-Panel statt Standard-EditText. -->
         <EditText
             android:id="@+id/messageText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nachricht an Jarvis"
-            android:inputType="textMultiLine"
-            android:minLines="2"
-            android:paddingTop="8dp" />
-
-        <Button
-            android:id="@+id/sendButton"
-            style="@style/Widget.Jarvis.HudButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Text senden"
-            android:layout_marginTop="8dp" />
-
-        <Button
-            android:id="@+id/talkButton"
-            style="@style/Widget.Jarvis.HudButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🎤 Sprechen"
-            android:layout_marginTop="16dp" />
-
-        <Button
-            android:id="@+id/cameraButton"
-            style="@style/Widget.Jarvis.HudButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="📷 Zeigen / Scannen"
-            android:layout_marginTop="8dp" />
-
-        <Button
-            android:id="@+id/wakeButton"
-            style="@style/Widget.Jarvis.HudButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🟢 „Hey Jarvis” aktivieren"
-            android:layout_marginTop="8dp" />
-
-        <Button
-            android:id="@+id/syncButton"
-            style="@style/Widget.Jarvis.HudButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🔄 Fitness synchronisieren"
-            android:layout_marginTop="8dp" />
-
-        <!-- v0.31: Standort mitschicken. Bewusst NICHT hinter den
-             Zugangsdaten versteckt, sondern gleich sichtbar - sie soll die
-             Ortung im Vorbeigehen abstellen koennen, ohne die Berechtigung
-             in den Android-Einstellungen zurueckzunehmen. Darunter steht,
-             welchen Ort die App gerade kennt: Ohne diese Anzeige waere im
-             Alltag nicht pruefbar, ob die Ortung ueberhaupt etwas liefert. -->
-        <CheckBox
-            android:id="@+id/standortSchalter"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:textSize="14sp"
-            android:text="Standort mitschicken (für Empfehlungen unterwegs)" />
+            android:background="@drawable/panel_background"
+            android:padding="12dp"
+            android:hint="Nachricht an Jarvis"
+            android:textColor="@color/jarvis_text_primary"
+            android:textColorHint="@color/jarvis_text_secondary"
+            android:inputType="textMultiLine"
+            android:minLines="2" />
 
-        <TextView
-            android:id="@+id/standortInfo"
+        <!-- Icon-Leiste statt der fuenf frueheren Volltext-Buttons - alle
+             fuenf View-IDs unveraendert. Kuerzere Labels ("Senden" statt
+             "Text senden" etc.) - passen jetzt unter ein Icon, gleiche
+             Bedeutung. Dynamische Text-/isActivated-Aenderungen aus
+             MainActivity.kt (talkButton/wakeButton) greifen unveraendert,
+             siehe Task 7 fuer die dort gekuerzten Laufzeit-Texte. -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="2dp"
-            android:textSize="13sp"
-            android:textStyle="italic"
-            android:text="" />
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
 
-        <TextView
-            android:id="@+id/wakeStatusView"
+            <Button
+                android:id="@+id/sendButton"
+                style="@style/Widget.Jarvis.DockButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/ic_senden"
+                android:text="Senden" />
+
+            <Button
+                android:id="@+id/talkButton"
+                style="@style/Widget.Jarvis.DockButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/ic_mikrofon"
+                android:text="Sprechen" />
+
+            <Button
+                android:id="@+id/cameraButton"
+                style="@style/Widget.Jarvis.DockButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/ic_kamera"
+                android:text="Foto" />
+
+            <Button
+                android:id="@+id/wakeButton"
+                style="@style/Widget.Jarvis.DockButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/ic_wecken"
+                android:text="Hey Jarvis" />
+
+            <Button
+                android:id="@+id/syncButton"
+                style="@style/Widget.Jarvis.DockButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@drawable/ic_sync"
+                android:text="Sync" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="12dp"
-            android:textSize="13sp"
-            android:textStyle="italic"
-            android:text="" />
+            android:layout_marginTop="18dp"
+            app:cardBackgroundColor="@color/jarvis_panel_fill"
+            app:strokeColor="@color/jarvis_accent"
+            app:strokeWidth="2dp"
+            app:cardElevation="0dp"
+            app:shapeAppearance="@style/ShapeAppearance.Jarvis.Kachel">
 
-        <TextView
-            android:id="@+id/answerView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="20dp"
-            android:textSize="16sp"
-            android:textIsSelectable="true"
-            android:text="" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
 
-        <!-- Nachrichten, die Jarvis von sich aus schickt (Briefings,
-             Manus-Ergebnisse). Wird in MainActivity programmatisch
-             gefuellt - eine Liste mit wenigen Eintraegen braucht keine
-             eigene Listen-Mechanik. -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="10sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.06"
+                    android:textColor="@color/jarvis_accent_bright"
+                    android:text="Antwort" />
+
+                <TextView
+                    android:id="@+id/answerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="4dp"
+                    android:textSize="15sp"
+                    android:textColor="@color/jarvis_text_primary"
+                    android:textIsSelectable="true"
+                    android:text="" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:id="@+id/postfachTitel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="28dp"
-            android:paddingBottom="4dp"
-            android:textSize="18sp"
+            android:paddingTop="24dp"
+            android:paddingBottom="8dp"
+            android:textSize="14sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08"
+            android:textColor="@color/jarvis_text_secondary"
             android:text="Nachrichten von Jarvis" />
 
-        <LinearLayout
-            android:id="@+id/postfachListe"
+        <!-- Nachrichten, die Jarvis von sich aus schickt - liste selbst
+             (postfachListe) bleibt eine programmatisch befuellte
+             LinearLayout wie bisher, MainActivity.kt unveraendert bis auf
+             die Panel-Optik der einzelnen Eintraege (siehe Task 8). Der
+             umgebende Rahmen hier ist neu (Kachel-Optik fuer den
+             Gesamtblock). -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            app:cardBackgroundColor="@color/jarvis_panel_fill"
+            app:strokeColor="@color/jarvis_panel_border"
+            app:strokeWidth="2dp"
+            app:cardElevation="0dp"
+            app:shapeAppearance="@style/ShapeAppearance.Jarvis.Kachel">
+
+            <LinearLayout
+                android:id="@+id/postfachListe"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </ScrollView>
 
-    <!-- App-Sperre: undurchsichtig, deckt alles ab. Standardmaessig
-         sichtbar - MainActivity blendet sie erst nach erfolgreicher
-         Fingerabdruck-/PIN-Pruefung aus. -->
+    <!-- App-Sperre: undurchsichtig, deckt alles ab. Hintergrund kommt jetzt
+         automatisch aus AppTheme.android:colorBackground (Task 1) - dunkel
+         statt hell/dunkel je nach System-Theme. -->
     <LinearLayout
         android:id="@+id/sperrschirm"
         android:layout_width="match_parent"
@@ -222,6 +352,7 @@
             android:layout_height="wrap_content"
             android:text="Jarvis ist gesperrt"
             android:textSize="18sp"
+            android:textColor="@color/jarvis_text_primary"
             android:paddingTop="8dp"
             android:paddingBottom="24dp" />
 
