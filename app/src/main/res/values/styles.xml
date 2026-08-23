@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Einheitlicher Stil fuer sendButton/talkButton/cameraButton/
-         wakeButton - buendelt Hintergrund, Textfarbe, Innenabstand,
-         Textgroesse, damit alle vier gleich aussehen (16.08.2026,
-         siehe PLAN-JARVIS-APP-BUTTONS.md). stateListAnimator/elevation
-         auf 0, sonst legt AppCompat einen Schatten beim Draufdruecken
-         drueber, der zum flachen HUD-Look nicht passt. -->
-    <style name="Widget.Jarvis.HudButton" parent="Widget.AppCompat.Button">
-        <item name="android:background">@drawable/button_hud_background</item>
-        <item name="android:textColor">@color/jarvis_button_text</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:paddingTop">14dp</item>
-        <item name="android:paddingBottom">14dp</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="android:elevation">0dp</item>
+    <!-- App-weites Theme fuer das Magenta-Redesign (23.08.2026, siehe
+         PLAN-JARVIS-APP-REDESIGN.md). Theme.MaterialComponents statt
+         Theme.AppCompat, damit MaterialCardView (Kacheln mit
+         angeschnittenen Ecken) funktioniert. android:colorBackground
+         UND android:windowBackground werden beide gesetzt: der
+         Sperrbildschirm (activity_main.xml, sperrschirm) referenziert
+         explizit ?android:attr/colorBackground. -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/jarvis_accent</item>
+        <item name="colorPrimaryDark">@color/jarvis_bg</item>
+        <item name="colorAccent">@color/jarvis_accent</item>
+        <item name="colorControlActivated">@color/jarvis_accent_bright</item>
+        <item name="android:windowBackground">@drawable/jarvis_bg_gradient</item>
+        <item name="android:colorBackground">@color/jarvis_bg</item>
+        <item name="android:textColorPrimary">@color/jarvis_text_primary</item>
+        <item name="android:textColorSecondary">@color/jarvis_text_secondary</item>
     </style>
 </resources>

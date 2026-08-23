@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fenster-Hintergrund fuers Magenta-Redesign - fester dunkler Verlauf,
+     unabhaengig vom System-Hell/Dunkel-Theme (23.08.2026, siehe
+     PLAN-JARVIS-APP-REDESIGN.md). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="90"
+        android:startColor="@color/jarvis_bg_oben"
+        android:endColor="@color/jarvis_bg" />
+</shape>

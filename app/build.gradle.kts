@@ -66,6 +66,11 @@ android {
 
 dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // AndroidX Material Components - einzige neue Abhaengigkeit im
+    // Magenta-Redesign (23.08.2026, siehe PLAN-JARVIS-APP-REDESIGN.md):
+    // liefert MaterialCardView mit per-Ecke abschneidbaren Formen
+    // (CornerFamily.CUT), die ein reines <shape>-Drawable nicht kann.
+    implementation("com.google.android.material:material:1.12.0")
     // App-Sperre: Fingerabdruck oder Geraete-PIN beim Oeffnen, unabhaengig
     // von der Handy-Entsperrung. Schuetzt vor kurzem Zugriff aufs entsperrte
     // Handy (04.08.2026, Franks Wunsch).

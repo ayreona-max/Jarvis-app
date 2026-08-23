@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Akzentfarbe fuer die App-weite HUD-Optik - identisch zu
-         HudView.FARBE (HudView.kt), damit Buttons und Ring farblich
-         zusammenpassen (16.08.2026, siehe PLAN-JARVIS-APP-BUTTONS.md). -->
-    <color name="jarvis_accent">#FF378ADD</color>
-    <color name="jarvis_accent_bright">#FF6BAFEF</color>
-    <!-- Fester dunkler Untergrund - bewusst NICHT vom System-Theme
-         abhaengig, damit der Outline-Look auf hellem und dunklem
-         Standard-Hintergrund gleich aussieht. -->
-    <color name="jarvis_button_fill">#FF14283A</color>
-    <color name="jarvis_button_fill_activated">#FF1F4566</color>
-    <color name="jarvis_button_text">#FFEAF3FC</color>
-    <color name="jarvis_button_ripple">#66378ADD</color>
+    <!-- Magenta-Redesign, 23.08.2026 (siehe PLAN-JARVIS-APP-REDESIGN.md) -
+         ersetzt die bisherige blaue HUD-Palette (#FF378ADD) komplett.
+         HudView.FARBE verwendet denselben Grundton, damit Ring und
+         restliche App farblich zusammenpassen. -->
+    <color name="jarvis_accent">#FFE619B0</color>
+    <color name="jarvis_accent_bright">#FFFF6FDE</color>
+    <!-- Panel-/Kachel-Fuellung: dieselbe Akzentfarbe bei niedriger
+         Deckkraft (ca. 10%) auf dunklem Grund. -->
+    <color name="jarvis_panel_fill">#1AE619B0</color>
+    <!-- Volle Fuellung fuer aktive Zustaende (Icon-Leiste waehrend
+         Aufnahme/Hey Jarvis). -->
+    <color name="jarvis_panel_fill_activated">#FFE619B0</color>
+    <color name="jarvis_panel_border">#8CE619B0</color>
+    <!-- Fester dunkler App-Untergrund - bewusst NICHT vom System-Theme
+         abhaengig, jetzt fuer die ganze Aktivitaet (bisher nur fuer die
+         vier Haupt-Buttons). -->
+    <color name="jarvis_bg">#FF0C0712</color>
+    <color name="jarvis_bg_oben">#FF150A1C</color>
+    <color name="jarvis_text_primary">#FFF4E9FB</color>
+    <color name="jarvis_text_secondary">#FFB7A9C4</color>
+    <color name="jarvis_ripple">#66E619B0</color>
 </resources>
