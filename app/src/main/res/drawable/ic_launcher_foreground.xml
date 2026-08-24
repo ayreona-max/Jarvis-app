@@ -1,40 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive-Icon-Vordergrund: vereinfachte Fassung des HudView-Rings
-     (Aussenring + 8 Tick-Marken + Kern-Bogen, siehe HudView.kt) als
-     Icon-Glyphe. Bewusst reduziert auf Ring/Ticks/Bogen statt der vollen
-     HUD-Chrome (Strichel-Ring, Zustandstext) - bei 48dp Launcher-Groesse
-     wuerde mehr Detail nur verschwimmen. Alle Formen bleiben innerhalb der
-     66dp-Sicherheitszone (Radius 33 um die Mitte 54,54 im 108x108-Raster),
-     damit unterschiedliche Launcher-Masken (Kreis/Quadrat/Squircle)
-     nichts abschneiden. Farben aus colors.xml, identisch zu HudView.FARBE
-     bzw. dessen Akzentfamilie. -->
+<!-- Adaptive-Icon-Vordergrund, Arc-Reaktor-Motiv (ersetzt die fruehere
+     Ring+Tick-Fassung auf Wunsch vom 24.08.2026): aeussere Gehaeuse-Ring,
+     9 radiale "Turbinen"-Segmente und ein gluehender Kern - ein
+     eigenstaendiges, generisches Sci-Fi-Energiekern-Design, KEINE Kopie
+     des markenrechtlich geschuetzten Marvel-Arc-Reaktors oder der
+     Iron-Man-Helmsilhouette. Alle Formen bleiben innerhalb der
+     66dp-Sicherheitszone (Radius 33 um die Mitte 54,54 im 108x108-Raster).
+     Farben aus colors.xml (jarvis_accent / jarvis_accent_bright), passend
+     zum HudView-Ring der App. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Aussenring, Radius 28 -->
+    <!-- Gehaeuse-Ring, Radius 30 -->
     <path
-        android:pathData="M26,54 A28,28 0 1,1 82,54 A28,28 0 1,1 26,54"
+        android:pathData="M24,54 A30,30 0 1,1 84,54 A30,30 0 1,1 24,54"
         android:strokeColor="@color/jarvis_accent"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:fillColor="#00000000" />
 
-    <!-- 8 Tick-Marken, 45 Grad Abstand, zwischen Radius 29 und 33 -->
+    <!-- 9 radiale Segmente zwischen Radius 18 und 26 -->
     <path
-        android:pathData="M83,54 L87,54 M74.51,74.51 L77.33,77.33 M54,83 L54,87 M33.49,74.51 L30.67,77.33 M25,54 L21,54 M33.49,33.49 L30.67,30.67 M54,25 L54,21 M74.51,33.49 L77.33,30.67"
-        android:strokeColor="@color/jarvis_accent"
-        android:strokeWidth="2.6"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
+        android:pathData="M71.9,52.12 L71.9,55.88 L79.68,58.07 L79.68,49.93 Z M68.92,64.07 L66.5,66.95 L71.06,73.62 L76.29,67.39 Z M58.96,71.3 L55.26,71.96 L54.45,80.0 L62.46,78.58 Z M46.68,70.44 L43.42,68.56 L37.64,74.21 L44.68,78.27 Z M37.82,61.89 L36.53,58.35 L28.48,58.96 L31.26,66.61 Z M36.53,49.65 L37.82,46.11 L31.26,41.39 L28.48,49.04 Z M43.42,39.44 L46.68,37.56 L44.68,29.73 L37.64,33.79 Z M55.26,36.04 L58.96,36.7 L62.46,29.42 L54.45,28.0 Z M66.5,41.05 L68.92,43.93 L76.29,40.61 L71.06,34.38 Z"
+        android:fillColor="@color/jarvis_accent" />
 
-    <!-- Kern-Bogen (270 Grad, offen), Radius 16 - Pendant zum pulsierenden
-         Bogen im Kern von HudView -->
+    <!-- Gluehender Halo hinter dem Kern, Radius 16, reduzierte Deckkraft -->
     <path
-        android:pathData="M65.31,42.69 A16,16 0 1 1 42.69,42.69"
-        android:strokeColor="@color/jarvis_accent_bright"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
+        android:pathData="M38,54 A16,16 0 1,1 70,54 A16,16 0 1,1 38,54"
+        android:fillColor="#59FF6FDE" />
+
+    <!-- Kern, Radius 11, voll deckend -->
+    <path
+        android:pathData="M43,54 A11,11 0 1,1 65,54 A11,11 0 1,1 43,54"
+        android:fillColor="@color/jarvis_accent_bright" />
 </vector>

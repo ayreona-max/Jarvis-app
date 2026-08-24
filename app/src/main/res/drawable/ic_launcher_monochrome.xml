@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Monochrome Ebene fuer themed Icons (Android 13+/Material You): gleiche
-     Geometrie wie ic_launcher_foreground.xml, aber einfarbig - das System
-     ersetzt die Farbe durch den Systemakzent, darum ist die konkrete
-     Farbe hier irrelevant (Konvention: Weiss). -->
+     Geometrie wie ic_launcher_foreground.xml (Arc-Reaktor-Motiv), aber
+     einfarbig - das System ersetzt die Farbe durch den Systemakzent,
+     darum ist die konkrete Farbe hier irrelevant (Konvention: Weiss). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -10,22 +10,20 @@
     android:viewportHeight="108">
 
     <path
-        android:pathData="M26,54 A28,28 0 1,1 82,54 A28,28 0 1,1 26,54"
+        android:pathData="M24,54 A30,30 0 1,1 84,54 A30,30 0 1,1 24,54"
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:fillColor="#00000000" />
 
     <path
-        android:pathData="M83,54 L87,54 M74.51,74.51 L77.33,77.33 M54,83 L54,87 M33.49,74.51 L30.67,77.33 M25,54 L21,54 M33.49,33.49 L30.67,30.67 M54,25 L54,21 M74.51,33.49 L77.33,30.67"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2.6"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
+        android:pathData="M71.9,52.12 L71.9,55.88 L79.68,58.07 L79.68,49.93 Z M68.92,64.07 L66.5,66.95 L71.06,73.62 L76.29,67.39 Z M58.96,71.3 L55.26,71.96 L54.45,80.0 L62.46,78.58 Z M46.68,70.44 L43.42,68.56 L37.64,74.21 L44.68,78.27 Z M37.82,61.89 L36.53,58.35 L28.48,58.96 L31.26,66.61 Z M36.53,49.65 L37.82,46.11 L31.26,41.39 L28.48,49.04 Z M43.42,39.44 L46.68,37.56 L44.68,29.73 L37.64,33.79 Z M55.26,36.04 L58.96,36.7 L62.46,29.42 L54.45,28.0 Z M66.5,41.05 L68.92,43.93 L76.29,40.61 L71.06,34.38 Z"
+        android:fillColor="#FFFFFFFF" />
 
     <path
-        android:pathData="M65.31,42.69 A16,16 0 1 1 42.69,42.69"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="8"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
+        android:pathData="M38,54 A16,16 0 1,1 70,54 A16,16 0 1,1 38,54"
+        android:fillColor="#59FFFFFF" />
+
+    <path
+        android:pathData="M43,54 A11,11 0 1,1 65,54 A11,11 0 1,1 43,54"
+        android:fillColor="#FFFFFFFF" />
 </vector>
