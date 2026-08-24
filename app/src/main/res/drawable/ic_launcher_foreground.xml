@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-Icon-Vordergrund: vereinfachte Fassung des HudView-Rings
+     (Aussenring + 8 Tick-Marken + Kern-Bogen, siehe HudView.kt) als
+     Icon-Glyphe. Bewusst reduziert auf Ring/Ticks/Bogen statt der vollen
+     HUD-Chrome (Strichel-Ring, Zustandstext) - bei 48dp Launcher-Groesse
+     wuerde mehr Detail nur verschwimmen. Alle Formen bleiben innerhalb der
+     66dp-Sicherheitszone (Radius 33 um die Mitte 54,54 im 108x108-Raster),
+     damit unterschiedliche Launcher-Masken (Kreis/Quadrat/Squircle)
+     nichts abschneiden. Farben aus colors.xml, identisch zu HudView.FARBE
+     bzw. dessen Akzentfamilie. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Aussenring, Radius 28 -->
+    <path
+        android:pathData="M26,54 A28,28 0 1,1 82,54 A28,28 0 1,1 26,54"
+        android:strokeColor="@color/jarvis_accent"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+
+    <!-- 8 Tick-Marken, 45 Grad Abstand, zwischen Radius 29 und 33 -->
+    <path
+        android:pathData="M83,54 L87,54 M74.51,74.51 L77.33,77.33 M54,83 L54,87 M33.49,74.51 L30.67,77.33 M25,54 L21,54 M33.49,33.49 L30.67,30.67 M54,25 L54,21 M74.51,33.49 L77.33,30.67"
+        android:strokeColor="@color/jarvis_accent"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- Kern-Bogen (270 Grad, offen), Radius 16 - Pendant zum pulsierenden
+         Bogen im Kern von HudView -->
+    <path
+        android:pathData="M65.31,42.69 A16,16 0 1 1 42.69,42.69"
+        android:strokeColor="@color/jarvis_accent_bright"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

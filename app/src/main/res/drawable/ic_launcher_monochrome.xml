@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome Ebene fuer themed Icons (Android 13+/Material You): gleiche
+     Geometrie wie ic_launcher_foreground.xml, aber einfarbig - das System
+     ersetzt die Farbe durch den Systemakzent, darum ist die konkrete
+     Farbe hier irrelevant (Konvention: Weiss). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M26,54 A28,28 0 1,1 82,54 A28,28 0 1,1 26,54"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+
+    <path
+        android:pathData="M83,54 L87,54 M74.51,74.51 L77.33,77.33 M54,83 L54,87 M33.49,74.51 L30.67,77.33 M25,54 L21,54 M33.49,33.49 L30.67,30.67 M54,25 L54,21 M74.51,33.49 L77.33,30.67"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <path
+        android:pathData="M65.31,42.69 A16,16 0 1 1 42.69,42.69"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

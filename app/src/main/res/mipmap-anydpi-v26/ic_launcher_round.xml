@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- minSdk ist bereits 26 (siehe app/build.gradle.kts), darum genuegt die
+     Adaptive-Icon-Definition allein - kein PNG-Fallback fuer aeltere
+     API-Level noetig. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
