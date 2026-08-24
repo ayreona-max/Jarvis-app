@@ -1,10 +1,13 @@
 name: Build APK
 
 # Baut bei jedem Push auf main eine installierbare Debug-APK und legt sie
-# als Download-Artefakt ab. Manuell ausloesbar ueber "Run workflow".
+# als Download-Artefakt ab. Laeuft ausserdem bei jedem Pull Request (baut
+# und testet, aber ohne Release-Veroeffentlichung - siehe die
+# main-Bedingungen weiter unten). Manuell ausloesbar ueber "Run workflow".
 on:
   push:
     branches: [ main ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
