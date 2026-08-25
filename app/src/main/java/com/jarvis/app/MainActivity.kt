@@ -736,6 +736,11 @@ class MainActivity : AppCompatActivity() {
                             answerView.text = laufend
                         }
                     },
+                    onAktion = { aktion ->
+                        if (aktion.optString("typ") == "navigation") {
+                            Navigation.starten(this, aktion.optString("ziel"))
+                        }
+                    },
                 )
             } catch (e: Throwable) {
                 false
@@ -802,6 +807,11 @@ class MainActivity : AppCompatActivity() {
                     }
                     val json = Krypto.auspacken(this, JSONObject(respBody))
                     val answer = json.optString("text", respBody)
+                    json.optJSONObject("aktion")?.let { aktion ->
+                        if (aktion.optString("typ") == "navigation") {
+                            Navigation.starten(this, aktion.optString("ziel"))
+                        }
+                    }
                     val audioB64 = if (json.isNull("audio_base64")) null
                                    else json.optString("audio_base64", null)
                     runOnUiThread {

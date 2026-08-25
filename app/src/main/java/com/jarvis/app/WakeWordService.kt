@@ -806,6 +806,11 @@ class WakeWordService : Service() {
                 blockiereBisGesprochen = true,
                 stillBeiUnverstanden = ausNachfass,
                 standort = ort,
+                onAktion = { aktion ->
+                    if (aktion.optString("typ") == "navigation") {
+                        Navigation.starten(this, aktion.optString("ziel"))
+                    }
+                },
             )
             if (gestreamt) return
         } catch (t: Throwable) {
@@ -851,6 +856,11 @@ class WakeWordService : Service() {
                     if (json.optString("anlass") == "nichts_verstanden" && ausNachfass) {
                         meldeStatus("Nichts verstanden (Nachfass) – ich lausche weiter.")
                         return
+                    }
+                    json.optJSONObject("aktion")?.let { aktion ->
+                        if (aktion.optString("typ") == "navigation") {
+                            Navigation.starten(this, aktion.optString("ziel"))
+                        }
                     }
                     val audioB64 = if (json.isNull("audio_base64")) null
                                    else json.optString("audio_base64", null)
