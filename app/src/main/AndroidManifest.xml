@@ -8,7 +8,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Damit das Lauschen einen Handy-Neustart ueberlebt (siehe
          NeustartEmpfaenger). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -53,11 +52,6 @@
          Schreiben - Jarvis traegt selbst keine Gesundheitsdaten ein. -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
-        <!-- Auto-Navigation (25.08.2026): Android 11+ erfordert package visibility
-             fuer resolveActivity() um zu pruefen, ob Google Maps installiert ist.
-             Ohne diese Erklaerung sieht resolveActivity() null, obwohl Maps vorhanden
-             ist, und Navigation.kt fiele auf geo: URI Fallback zurueck. -->
-        <package android:name="com.google.android.apps.maps" />
     </queries>
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />

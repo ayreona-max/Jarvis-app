@@ -1,11 +1,9 @@
 package com.jarvis.app
 
 import android.Manifest
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -13,7 +11,6 @@ import android.graphics.Matrix
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Base64
 import android.widget.Button
 import android.widget.EditText
@@ -322,33 +319,6 @@ class MainActivity : AppCompatActivity() {
         ) {
             prefs.edit().putBoolean("postfach_benachrichtigung_gefragt", true).apply()
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4)
-        }
-
-        // Vollbild-Benachrichtigung fuer die Auto-Navigation (ab Android 14
-        // eine eigene, nicht automatisch gewaehrte Berechtigung - siehe
-        // docs/superpowers/specs/2026-08-24-auto-navigation-design.md).
-        // Einmaliger Hinweis, dann nie wieder, unabhaengig davon, ob Frank
-        // die Einstellung tatsaechlich oeffnet (gleiches Flag-Muster wie
-        // der POST_NOTIFICATIONS-Block direkt oben).
-        if (Build.VERSION.SDK_INT >= 34 &&
-            !(getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                .canUseFullScreenIntent() &&
-            !prefs.getBoolean("vollbild_navigation_gefragt", false)
-        ) {
-            prefs.edit().putBoolean("vollbild_navigation_gefragt", true).apply()
-            answerView.text = "Für freihändige Auto-Navigation bitte in den " +
-                "Einstellungen \"Vollbild-Benachrichtigungen\" für Jarvis erlauben."
-            try {
-                startActivity(
-                    Intent(
-                        Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-                        Uri.parse("package:$packageName")
-                    )
-                )
-            } catch (_: Exception) {
-                // Aeltere/andere Hersteller-ROMs kennen die Einstellungsseite
-                // manchmal nicht - der Hinweistext oben bleibt trotzdem stehen.
-            }
         }
 
         // Ist die App beim letzten Mal abgestuerzt, steht die Ursache hier -
@@ -736,11 +706,6 @@ class MainActivity : AppCompatActivity() {
                             answerView.text = laufend
                         }
                     },
-                    onAktion = { aktion ->
-                        if (aktion.optString("typ") == "navigation") {
-                            Navigation.starten(this, aktion.optString("ziel"))
-                        }
-                    },
                 )
             } catch (e: Throwable) {
                 false
@@ -807,11 +772,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     val json = Krypto.auspacken(this, JSONObject(respBody))
                     val answer = json.optString("text", respBody)
-                    json.optJSONObject("aktion")?.let { aktion ->
-                        if (aktion.optString("typ") == "navigation") {
-                            Navigation.starten(this, aktion.optString("ziel"))
-                        }
-                    }
                     val audioB64 = if (json.isNull("audio_base64")) null
                                    else json.optString("audio_base64", null)
                     runOnUiThread {

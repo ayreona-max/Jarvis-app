@@ -128,10 +128,6 @@ object StreamClient {
         standort: String = "",
         onTranscript: (String) -> Unit = {},
         onText: (String) -> Unit = {},
-        /** Wird aufgerufen, wenn die Antwort ein aktion-Feld enthaelt (z. B.
-         *  Navigation) - siehe
-         *  docs/superpowers/specs/2026-08-24-auto-navigation-design.md. */
-        onAktion: (JSONObject) -> Unit = {},
     ): Boolean {
         val requestId = UUID.randomUUID().toString()
         // Verschluesselt wird nur, wenn ein Schluessel hinterlegt ist. Ohne
@@ -249,7 +245,6 @@ object StreamClient {
                         "done" -> {
                             val voll = ev.optString("text", "")
                             if (voll.isNotEmpty()) onText(voll)
-                            ev.optJSONObject("aktion")?.let(onAktion)
                         }
                         "error" -> {
                             // Nur wenn noch NICHTS ankam, lohnt der Rueckfall.
