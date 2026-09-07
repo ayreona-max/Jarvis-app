@@ -669,6 +669,17 @@ class MainActivity : AppCompatActivity() {
 
     // --- Anfrage an den Server ---------------------------------------------
 
+    /** Wertet ein aktion-Feld aus der Assistant-Antwort aus (Navigation oder
+     *  Browser) - siehe docs/superpowers/specs/2026-08-24-auto-navigation-design.md.
+     *  Unbekannte/fehlende typ-Werte werden stillschweigend ignoriert, damit
+     *  ein spaeter hinzukommender Aktions-Typ alte App-Versionen nicht stoert. */
+    private fun verarbeiteAktion(aktion: JSONObject) {
+        when (aktion.optString("typ")) {
+            "navigation" -> Navigation.starten(this, aktion.optString("ziel"))
+            "browser" -> Browser.starten(this, aktion.optString("url"))
+        }
+    }
+
     private fun requestJarvis(text: String?, audio: File?, image: File? = null) {
         // Ein einziger Aufruf hier deckt alle drei Aufrufer ab (Senden-
         // Knopf, Sprechen-Knopf, Foto) - requestJarvis() ist die
@@ -706,6 +717,7 @@ class MainActivity : AppCompatActivity() {
                             answerView.text = laufend
                         }
                     },
+                    onAktion = { aktion -> verarbeiteAktion(aktion) },
                 )
             } catch (e: Throwable) {
                 false
@@ -772,6 +784,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     val json = Krypto.auspacken(this, JSONObject(respBody))
                     val answer = json.optString("text", respBody)
+                    json.optJSONObject("aktion")?.let { verarbeiteAktion(it) }
                     val audioB64 = if (json.isNull("audio_base64")) null
                                    else json.optString("audio_base64", null)
                     runOnUiThread {
