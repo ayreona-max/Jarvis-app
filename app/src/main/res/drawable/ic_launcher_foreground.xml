@@ -29,7 +29,7 @@
     <!-- Gluehender Halo hinter dem Kern, Radius 16, reduzierte Deckkraft -->
     <path
         android:pathData="M38,54 A16,16 0 1,1 70,54 A16,16 0 1,1 38,54"
-        android:fillColor="#59FF6FDE" />
+        android:fillColor="#59F0D78C" />
 
     <!-- Kern, Radius 11, voll deckend -->
     <path

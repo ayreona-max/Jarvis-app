@@ -25,6 +25,7 @@
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/jarvis_text_primary"
+            android:fontFamily="@font/cinzel"
             android:letterSpacing="0.08"
             android:paddingBottom="4dp" />
 
@@ -166,6 +167,7 @@
                         android:textAllCaps="true"
                         android:letterSpacing="0.06"
                         android:textColor="@color/jarvis_text_secondary"
+                        android:fontFamily="@font/cinzel"
                         android:text="Hey Jarvis" />
 
                     <TextView
@@ -276,6 +278,7 @@
                     android:textAllCaps="true"
                     android:letterSpacing="0.06"
                     android:textColor="@color/jarvis_accent_bright"
+                    android:fontFamily="@font/cinzel"
                     android:text="Antwort" />
 
                 <TextView
@@ -300,6 +303,7 @@
             android:textAllCaps="true"
             android:letterSpacing="0.08"
             android:textColor="@color/jarvis_text_secondary"
+            android:fontFamily="@font/cinzel"
             android:text="Nachrichten von Jarvis" />
 
         <!-- Nachrichten, die Jarvis von sich aus schickt - liste selbst
