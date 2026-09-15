@@ -60,7 +60,7 @@ class HudView @JvmOverloads constructor(
     companion object {
         private const val REF = 240f
         private const val MITTE = REF / 2f
-        private const val FARBE = 0xFFE619B0.toInt()
+        private const val FARBE = 0xFFC9A227.toInt()
         private const val UEBERGANG_MS = 280L
         private const val AUSSENRAND_RADIUS = 112f
         private const val BOGEN_RADIUS = 70f
@@ -123,7 +123,7 @@ class HudView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
     }
 
-    private val zustandsFont: Typeface? = ResourcesCompat.getFont(context, R.font.rajdhani_bold)
+    private val zustandsFont: Typeface? = ResourcesCompat.getFont(context, R.font.cinzel_bold)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = FARBE
         textAlign = Paint.Align.CENTER
@@ -212,7 +212,7 @@ class HudView @JvmOverloads constructor(
     /** Chrome, die in allen vier Zustaenden gleich aussieht: glatter
      *  Aussenrand, gedrehter gestrichelter Aussenring, Basis-Ring,
      *  Tick-Marken. Unveraendert aus der Vorgaengerfassung, nur FARBE ist
-     *  jetzt Magenta. */
+     *  jetzt Gold (WoW-Redesign, 15.09.2026). */
     private fun zeichneChrome(canvas: Canvas) {
         ringPaint.pathEffect = null
         ringPaint.strokeWidth = 1.5f

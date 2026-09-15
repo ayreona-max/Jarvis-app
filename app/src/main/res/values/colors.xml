@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Magenta-Redesign, 23.08.2026 (siehe PLAN-JARVIS-APP-REDESIGN.md) -
-         ersetzt die bisherige blaue HUD-Palette (#FF378ADD) komplett.
-         HudView.FARBE verwendet denselben Grundton, damit Ring und
-         restliche App farblich zusammenpassen. -->
-    <color name="jarvis_accent">#FFE619B0</color>
-    <color name="jarvis_accent_bright">#FFFF6FDE</color>
-    <!-- Panel-/Kachel-Fuellung: dieselbe Akzentfarbe bei niedriger
-         Deckkraft (ca. 10%) auf dunklem Grund. -->
-    <color name="jarvis_panel_fill">#1AE619B0</color>
+    <!-- WoW-Gold-Redesign, 15.09.2026 (siehe PLAN-JARVIS-APP-REDESIGN.md) -
+         ersetzt die bisherige Magenta-Techwear-Palette (#FFE619B0) komplett.
+         Geschmiedeter Gold-Rahmen auf dunklem Leder/Pergament statt
+         Sci-Fi-HUD. HudView.FARBE verwendet denselben Grundton, damit Ring
+         und restliche App farblich zusammenpassen. -->
+    <color name="jarvis_accent">#FFC9A227</color>
+    <color name="jarvis_accent_bright">#FFF0D78C</color>
+    <!-- Panel-/Kachel-Fuellung: dunkles Leder-Braun, deutlich deckender als
+         beim Magenta-Redesign (dort 10% Akzentfarbe) - Kacheln sollen wie
+         gefuellte Leder-/Pergamentplatten wirken, nicht wie Glas. -->
+    <color name="jarvis_panel_fill">#E6241708</color>
     <!-- Volle Fuellung fuer aktive Zustaende (Icon-Leiste waehrend
          Aufnahme/Hey Jarvis). -->
-    <color name="jarvis_panel_fill_activated">#FFE619B0</color>
-    <color name="jarvis_panel_border">#8CE619B0</color>
+    <color name="jarvis_panel_fill_activated">#FFC9A227</color>
+    <color name="jarvis_panel_border">#E68A6A2C</color>
     <!-- Fester dunkler App-Untergrund - bewusst NICHT vom System-Theme
-         abhaengig, jetzt fuer die ganze Aktivitaet (bisher nur fuer die
-         vier Haupt-Buttons). -->
-    <color name="jarvis_bg">#FF0C0712</color>
-    <color name="jarvis_bg_oben">#FF150A1C</color>
-    <color name="jarvis_text_primary">#FFF4E9FB</color>
-    <color name="jarvis_text_secondary">#FFB7A9C4</color>
-    <color name="jarvis_ripple">#66E619B0</color>
+         abhaengig, fuer die ganze Aktivitaet. -->
+    <color name="jarvis_bg">#FF150F09</color>
+    <color name="jarvis_bg_oben">#FF1C140D</color>
+    <color name="jarvis_text_primary">#FFECDFC0</color>
+    <color name="jarvis_text_secondary">#FFB6A179</color>
+    <color name="jarvis_ripple">#66C9A227</color>
 </resources>
