@@ -126,6 +126,13 @@ class WakeWordService : Service() {
         // Schwelle 0,65 und zwei Bestaetigungsbloecke die Fehlalarme
         // praktisch abgestellt haben.
         private const val AUFNAHME_MAX_MS = 20_000
+        // v0.44: Sagt Frank NUR das Weckwort ("Hallo Jarvis") und danach nichts,
+        // wartete die Aufnahme bis zu 20 s auf ein weiteres Wort und gab dann
+        // auf - ohne etwas zu senden (Befund 17.11.2026: Jarvis blieb stumm, die
+        // App hing in "ich hoere Ihre Frage"). Jetzt: Kommt nach dem Weckwort
+        // so lange gar keine Sprache, geht die Aufnahme (nur das Weckwort) an den
+        // Server; der erkennt den Gruss und antwortet "Ja, Master.".
+        private const val WECKWORT_ALLEIN_MS = 1_200
         // Am 17.11.2026 von 30 s auf 20 s gesenkt (Frank: Jarvis hoert nach dem
         // Wecken zu lange zu). Bei Hintergrundgespraechen wird die Stille nie
         // erreicht, dann laeuft die Aufnahme bis zu diesem Deckel. 20 s reichen
@@ -659,7 +666,8 @@ class WakeWordService : Service() {
      * wuerde das Weckwort selbst die Stille-Uhr starten und die Aufnahme
      * abbrechen, waehrend nach dem Zuruf noch ueberlegt wird.
      */
-    private fun nimmFrageAufAusStrom(): File? = aufnehmenAusStrom(vorlaufLesen())
+    private fun nimmFrageAufAusStrom(): File? =
+        aufnehmenAusStrom(vorlaufLesen(), weckwortAlleinMs = WECKWORT_ALLEIN_MS)
 
     /**
      * Der eigentliche Aufnahme-Vorgang auf dem schon offenen Mikrofon.
@@ -667,7 +675,13 @@ class WakeWordService : Service() {
      * beim Nachfass-Fenster die schon gehoerten ersten Worte). Gibt das
      * Mikrofon am Ende frei.
      */
-    private fun aufnehmenAusStrom(vorlauf: ShortArray, maxMs: Int = AUFNAHME_MAX_MS): File? {
+    private fun aufnehmenAusStrom(
+        vorlauf: ShortArray,
+        maxMs: Int = AUFNAHME_MAX_MS,
+        /** > 0: Kommt so lange nach dem Weckwort gar keine Sprache, gilt die
+         *  Aufnahme (nur das Weckwort) als reiner Zuruf und wird gesendet. */
+        weckwortAlleinMs: Int = 0,
+    ): File? {
         val rec = audioRecord ?: return null
         val datei = File(cacheDir, "wake_frage.wav")
         return try {
@@ -686,6 +700,7 @@ class WakeWordService : Service() {
             var laufzeitMs = 0
             var stilleMs = 0
             var gesprochen = false
+            var ohneSprachMs = 0
             while (aktiv && laufzeitMs < maxMs) {
                 var gelesen = 0
                 while (aktiv && gelesen < block.size) {
@@ -708,6 +723,14 @@ class WakeWordService : Service() {
                 } else if (gesprochen) {
                     stilleMs += 80
                     if (stilleMs >= STILLE_ENDE_MS) break
+                } else if (weckwortAlleinMs > 0) {
+                    ohneSprachMs += 80
+                    if (ohneSprachMs >= weckwortAlleinMs) {
+                        // Nur das Weckwort, danach Ruhe: Der Vorlauf mit
+                        // "Hallo Jarvis" geht an den Server.
+                        gesprochen = true
+                        break
+                    }
                 }
             }
             if (!gesprochen) return null
