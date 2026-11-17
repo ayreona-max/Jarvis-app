@@ -137,6 +137,11 @@ class WakeWordService : Service() {
         // kann. 7 s ist lang genug zum Nachdenken und kurz genug, dass das
         // Mikrofon nicht gefuehlt dauernd offen ist.
         private const val NACHFASS_FENSTER_MS = 4_000
+        // Nach "Hallo Jarvis" -> "Ja, ich hoere" (v0.43): Frank wurde ausdruecklich
+        // zum Sprechen aufgefordert und muss erst ueberlegen. Deshalb laenger als
+        // das normale Nachfass-Fenster, und es oeffnet sich auch dann, wenn der
+        // Nachfass-Schalter aus ist.
+        private const val GRUSS_FENSTER_MS = 8_000
         // Am 17.11.2026 von 7 s auf 4 s gekuerzt: Je laenger das Mikrofon ohne
         // Weckwort offen steht, desto eher schnappt es ein Gespraech im Raum
         // auf (Frank: reagiert auf Gespraeche und fremde Stimmen).
@@ -167,6 +172,9 @@ class WakeWordService : Service() {
     @Volatile private var aktiv = false
     // Gesetzt, wenn der Server die letzte Aufnahme als Fehlalarm verworfen hat
     // (kein "Jarvis" gehoert). Dann geht KEIN Nachfass-Fenster auf.
+    /** Der Server hat auf ein reines "Hallo Jarvis" mit "Ja, ich hoere"
+     *  geantwortet - danach das Mikrofon fuer die eigentliche Frage oeffnen. */
+    @Volatile private var zuhoeren = false
     @Volatile private var fehlalarm = false
     private var lauschThread: Thread? = null
     private var herzschlagThread: Thread? = null
@@ -425,12 +433,30 @@ class WakeWordService : Service() {
                     // gibt es das Fenster -, aber die Kette ist an der
                     // Wurzel gekappt: Danach braucht es wieder "Hey Jarvis".
                     var ausNachfass = false
+                    // v0.43: Nach "Hallo Jarvis" -> "Ja, ich hoere" gilt die naechste
+                    // Aufnahme als die eigentliche erste Frage: Sie wird ohne
+                    // Weckwort-Gegenprobe gesendet (quelle=nachfass), danach
+                    // darf wie gewohnt EIN Nachfass-Fenster folgen.
+                    var folgeNachGruss = false
                     while (aktiv && frage != null && frage.length() > 0) {
                         ton(ToneGenerator.TONE_PROP_ACK)
                         meldeStatus("Frage aufgenommen, sende an Jarvis …")
                         fehlalarm = false
+                        zuhoeren = false
                         frageJarvis(frage, ausNachfass)
-                        frage = if (aktiv && !ausNachfass && !fehlalarm && nachfassAn(this)) nachfassFenster() else null
+                        val hattePlatz = !ausNachfass || folgeNachGruss
+                        folgeNachGruss = false
+                        frage = when {
+                            !aktiv || fehlalarm -> null
+                            zuhoeren -> {
+                                folgeNachGruss = true
+                                ausNachfass = true
+                                meldeStatus("Ja, ich höre – sprechen Sie jetzt.")
+                                nachfassFenster(GRUSS_FENSTER_MS)
+                            }
+                            hattePlatz && nachfassAn(this) -> nachfassFenster()
+                            else -> null
+                        }
                         ausNachfass = true
                     }
                     // Puffer leeren, damit die eigene Aufnahme/Stimme keinen
@@ -715,7 +741,7 @@ class WakeWordService : Service() {
      *     (siehe NACHFASS_MIN_BYTES) – lieber schweigen als auf ein
      *     Geraeusch antworten.
      */
-    private fun nachfassFenster(): File? {
+    private fun nachfassFenster(fensterMs: Int = NACHFASS_FENSTER_MS): File? {
         val minPuffer = AudioRecord.getMinBufferSize(
             SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
         )
@@ -741,7 +767,7 @@ class WakeWordService : Service() {
         var wartezeitMs = 0
         var ueberPegel = 0
         try {
-            while (aktiv && wartezeitMs < NACHFASS_FENSTER_MS) {
+            while (aktiv && wartezeitMs < fensterMs) {
                 var gelesen = 0
                 while (aktiv && gelesen < block.size) {
                     val n = rec.read(block, gelesen, block.size - gelesen)
@@ -841,6 +867,7 @@ class WakeWordService : Service() {
                 // "Jarvis" vorkommt (Gegenprobe gegen Fehlalarme).
                 quelle = if (ausNachfass) "nachfass" else "weckwort",
                 onFehlalarm = { fehlalarm = true },
+                onZuhoeren = { zuhoeren = true },
                 standort = ort,
                 onAktion = { aktion -> verarbeiteAktion(aktion) },
             )
@@ -891,6 +918,7 @@ class WakeWordService : Service() {
                         meldeStatus("Fehlalarm erkannt (kein \"Jarvis\" gehoert) – ich lausche weiter.")
                         return
                     }
+                    if (json.optBoolean("zuhoeren", false)) zuhoeren = true
                     if (json.optString("anlass") == "nichts_verstanden" && ausNachfass) {
                         meldeStatus("Nichts verstanden (Nachfass) – ich lausche weiter.")
                         return
