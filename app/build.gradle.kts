@@ -21,8 +21,8 @@ android {
         applicationId = "com.jarvis.app"
         minSdk = 26          // Android 8.0 - deckt das Zielgeraet locker ab
         targetSdk = 34
-        versionCode = 41
-        versionName = "0.41"
+        versionCode = 42
+        versionName = "0.42"
     }
 
     // Ab AGP 8 wird BuildConfig nicht mehr automatisch erzeugt. Wir brauchen

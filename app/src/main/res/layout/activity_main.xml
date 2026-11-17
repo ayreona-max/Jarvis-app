@@ -179,6 +179,18 @@
                         android:textStyle="italic"
                         android:textColor="@color/jarvis_accent_bright"
                         android:text="" />
+
+                    <!-- Nachfass-Fenster ein/aus (v0.42). Aus = Jarvis hoert nach
+                         einer Antwort NICHT weiter zu, jede Frage braucht
+                         "Hey Jarvis". MainActivity/WakeWordService lesen den
+                         Wert aus den Einstellungen (nachfass_an). -->
+                    <CheckBox
+                        android:id="@+id/nachfassSchalter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/jarvis_text_primary"
+                        android:text="Nachfragen ohne Weckwort" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

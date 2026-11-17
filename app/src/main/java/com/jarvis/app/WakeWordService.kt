@@ -140,6 +140,13 @@ class WakeWordService : Service() {
         // Am 17.11.2026 von 7 s auf 4 s gekuerzt: Je laenger das Mikrofon ohne
         // Weckwort offen steht, desto eher schnappt es ein Gespraech im Raum
         // auf (Frank: reagiert auf Gespraeche und fremde Stimmen).
+
+        /** Einstellung (v0.42): Nachfass-Fenster an/aus, Standard an. */
+        const val PREF_NACHFASS_AN = "nachfass_an"
+
+        fun nachfassAn(ctx: Context): Boolean =
+            ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+                .getBoolean(PREF_NACHFASS_AN, true)
         // So viele Bloecke (a 80 ms) muessen IN FOLGE ueber dem Sprachpegel
         // liegen, damit das Fenster als "es wird gesprochen" gilt. Drei
         // Bloecke = 240 ms - ein Klappern oder Huesteln reicht damit nicht.
@@ -423,7 +430,7 @@ class WakeWordService : Service() {
                         meldeStatus("Frage aufgenommen, sende an Jarvis …")
                         fehlalarm = false
                         frageJarvis(frage, ausNachfass)
-                        frage = if (aktiv && !ausNachfass && !fehlalarm) nachfassFenster() else null
+                        frage = if (aktiv && !ausNachfass && !fehlalarm && nachfassAn(this)) nachfassFenster() else null
                         ausNachfass = true
                     }
                     // Puffer leeren, damit die eigene Aufnahme/Stimme keinen

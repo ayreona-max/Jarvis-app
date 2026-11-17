@@ -377,6 +377,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // --- v0.42: Nachfass-Fenster ein/aus ---------------------------------
+        // Aus = nach einer Antwort geht das Mikrofon nicht mehr auf, jede Frage
+        // braucht "Hey Jarvis". Der Dienst liest den Wert vor jedem Fenster neu.
+        val nachfassSchalter = findViewById<android.widget.CheckBox>(R.id.nachfassSchalter)
+        nachfassSchalter.isChecked = WakeWordService.nachfassAn(this)
+        nachfassSchalter.setOnCheckedChangeListener { _, an ->
+            getSharedPreferences("jarvis", Context.MODE_PRIVATE).edit()
+                .putBoolean(WakeWordService.PREF_NACHFASS_AN, an).apply()
+        }
+
         // --- v0.31: Standort mitschicken -----------------------------------
         // Zwei Schalter muessen an sein: die Android-Berechtigung UND dieser
         // hier. Wird er angetippt, ohne dass die Berechtigung vorliegt, fragt
