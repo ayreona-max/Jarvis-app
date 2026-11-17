@@ -122,6 +122,12 @@ object StreamClient {
          *  ein "nichts verstanden" stillschweigend verworfen, statt es
          *  vorzulesen - Jarvis wurde in dem Moment ja nicht gerufen. */
         stillBeiUnverstanden: Boolean = false,
+        /** "weckwort" oder "nachfass": Der Server prueft bei "weckwort", ob in
+         *  der Aufnahme "Jarvis" vorkommt, und verwirft sie sonst still
+         *  (Fehlalarm-Gegenprobe). Leer = keine Pruefung (Sprechen-Knopf). */
+        quelle: String = "",
+        /** Wird aufgerufen, wenn der Server die Aufnahme als Fehlalarm verworfen hat. */
+        onFehlalarm: () -> Unit = {},
         /** Aufenthaltsort als Adresstext (v0.31), leer = wie bisher. Der
          *  Server nimmt dann ortsbezogene Fragen auf DIESEN Ort statt
          *  nachzufragen. */
@@ -141,6 +147,7 @@ object StreamClient {
         val body = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("key", key)
             .addFormDataPart("request_id", requestId)
+        if (quelle.isNotEmpty()) body.addFormDataPart("quelle", quelle)
         if (e2e) body.addFormDataPart("e2e", "1")
         if (!text.isNullOrEmpty()) {
             body.addFormDataPart("text", if (e2e) Krypto.verschluesselnText(ctx, text) else text)
@@ -228,6 +235,13 @@ object StreamClient {
                             // sonst liefe dieselbe Aufnahme ein zweites Mal durch
                             // Whisper (am 29.07.2026 als Ursache fuer spuerbar
                             // spaete Antworten nachgewiesen).
+                            // Fehlalarm laut Server (kein "Jarvis" in der Aufnahme):
+                            // immer still, auch ausserhalb des Nachfass-Fensters.
+                            if (ev.optString("anlass") == "kein_weckwort") {
+                                onFehlalarm()
+                                bloecke++
+                                continue
+                            }
                             val unverstanden = ev.optString("anlass") == "nichts_verstanden"
                             if (unverstanden && stillBeiUnverstanden) {
                                 bloecke++
