@@ -128,6 +128,10 @@ object StreamClient {
         quelle: String = "",
         /** Wird aufgerufen, wenn der Server die Aufnahme als Fehlalarm verworfen hat. */
         onFehlalarm: () -> Unit = {},
+        /** Wird aufgerufen, wenn die Antwort ein reines "Ja, ich hoere" auf ein
+         *  "Hallo Jarvis" war (v0.43): Die App soll danach das Mikrofon fuer die
+         *  eigentliche Frage oeffnen. */
+        onZuhoeren: () -> Unit = {},
         /** Aufenthaltsort als Adresstext (v0.31), leer = wie bisher. Der
          *  Server nimmt dann ortsbezogene Fragen auf DIESEN Ort statt
          *  nachzufragen. */
@@ -242,6 +246,7 @@ object StreamClient {
                                 bloecke++
                                 continue
                             }
+                            if (ev.optBoolean("zuhoeren", false)) onZuhoeren()
                             val unverstanden = ev.optString("anlass") == "nichts_verstanden"
                             if (unverstanden && stillBeiUnverstanden) {
                                 bloecke++
