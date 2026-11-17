@@ -125,17 +125,27 @@ class WakeWordService : Service() {
         // im schlimmsten Fall 30 s Aufnahme statt 10 - vertretbar, seit
         // Schwelle 0,65 und zwei Bestaetigungsbloecke die Fehlalarme
         // praktisch abgestellt haben.
-        private const val AUFNAHME_MAX_MS = 30_000
+        private const val AUFNAHME_MAX_MS = 20_000
+        // Am 17.11.2026 von 30 s auf 20 s gesenkt (Frank: Jarvis hoert nach dem
+        // Wecken zu lange zu). Bei Hintergrundgespraechen wird die Stille nie
+        // erreicht, dann laeuft die Aufnahme bis zu diesem Deckel. 20 s reichen
+        // fuer einen mehrstufigen Zuruf.
+        // Eine Anschlussfrage im Nachfass-Fenster ist immer kurz.
+        private const val NACHFASS_AUFNAHME_MAX_MS = 10_000
         // NACHFASS-FENSTER (v0.21): So lange bleibt das Mikrofon nach der
         // Antwort offen, damit man ohne erneutes "Hey Jarvis" weiterreden
         // kann. 7 s ist lang genug zum Nachdenken und kurz genug, dass das
         // Mikrofon nicht gefuehlt dauernd offen ist.
-        private const val NACHFASS_FENSTER_MS = 7_000
+        private const val NACHFASS_FENSTER_MS = 4_000
+        // Am 17.11.2026 von 7 s auf 4 s gekuerzt: Je laenger das Mikrofon ohne
+        // Weckwort offen steht, desto eher schnappt es ein Gespraech im Raum
+        // auf (Frank: reagiert auf Gespraeche und fremde Stimmen).
         // So viele Bloecke (a 80 ms) muessen IN FOLGE ueber dem Sprachpegel
         // liegen, damit das Fenster als "es wird gesprochen" gilt. Drei
         // Bloecke = 240 ms - ein Klappern oder Huesteln reicht damit nicht.
         // Gleiche Idee wie BESTAETIGUNGEN beim Weckwort.
-        private const val NACHFASS_ONSET_BLOECKE = 3
+        private const val NACHFASS_ONSET_BLOECKE = 5
+        // Am 17.11.2026 von 3 auf 5 Bloecke (400 ms) angehoben, siehe oben.
         // Kuerzer als das hier (WAV-Kopf + ~1 s Ton) wird gar nicht erst
         // gesendet - dann war es doch nur ein Geraeusch.
         private const val NACHFASS_MIN_BYTES = 44 + SAMPLE_RATE * 2
@@ -148,6 +158,9 @@ class WakeWordService : Service() {
     }
 
     @Volatile private var aktiv = false
+    // Gesetzt, wenn der Server die letzte Aufnahme als Fehlalarm verworfen hat
+    // (kein "Jarvis" gehoert). Dann geht KEIN Nachfass-Fenster auf.
+    @Volatile private var fehlalarm = false
     private var lauschThread: Thread? = null
     private var herzschlagThread: Thread? = null
     private var postfachThread: Thread? = null
@@ -408,8 +421,9 @@ class WakeWordService : Service() {
                     while (aktiv && frage != null && frage.length() > 0) {
                         ton(ToneGenerator.TONE_PROP_ACK)
                         meldeStatus("Frage aufgenommen, sende an Jarvis …")
+                        fehlalarm = false
                         frageJarvis(frage, ausNachfass)
-                        frage = if (aktiv && !ausNachfass) nachfassFenster() else null
+                        frage = if (aktiv && !ausNachfass && !fehlalarm) nachfassFenster() else null
                         ausNachfass = true
                     }
                     // Puffer leeren, damit die eigene Aufnahme/Stimme keinen
@@ -620,7 +634,7 @@ class WakeWordService : Service() {
      * beim Nachfass-Fenster die schon gehoerten ersten Worte). Gibt das
      * Mikrofon am Ende frei.
      */
-    private fun aufnehmenAusStrom(vorlauf: ShortArray): File? {
+    private fun aufnehmenAusStrom(vorlauf: ShortArray, maxMs: Int = AUFNAHME_MAX_MS): File? {
         val rec = audioRecord ?: return null
         val datei = File(cacheDir, "wake_frage.wav")
         return try {
@@ -639,7 +653,7 @@ class WakeWordService : Service() {
             var laufzeitMs = 0
             var stilleMs = 0
             var gesprochen = false
-            while (aktiv && laufzeitMs < AUFNAHME_MAX_MS) {
+            while (aktiv && laufzeitMs < maxMs) {
                 var gelesen = 0
                 while (aktiv && gelesen < block.size) {
                     val n = rec.read(block, gelesen, block.size - gelesen)
@@ -741,7 +755,7 @@ class WakeWordService : Service() {
                         // Es wird gesprochen: ab hier normale Aufnahme, der
                         // Vorlauf
                         // enthaelt die schon gehoerten ersten Silben.
-                        val aufnahme = aufnehmenAusStrom(vorlaufLesen())
+                        val aufnahme = aufnehmenAusStrom(vorlaufLesen(), NACHFASS_AUFNAHME_MAX_MS)
                         if (aufnahme != null && aufnahme.length() < NACHFASS_MIN_BYTES) {
                             // Zu kurz - war vermutlich ein Geraeusch.
                             return null
@@ -816,6 +830,10 @@ class WakeWordService : Service() {
                 text = null, audio = audio, cacheDir = cacheDir,
                 blockiereBisGesprochen = true,
                 stillBeiUnverstanden = ausNachfass,
+                // Der Server prueft bei "weckwort", ob in der Aufnahme wirklich
+                // "Jarvis" vorkommt (Gegenprobe gegen Fehlalarme).
+                quelle = if (ausNachfass) "nachfass" else "weckwort",
+                onFehlalarm = { fehlalarm = true },
                 standort = ort,
                 onAktion = { aktion -> verarbeiteAktion(aktion) },
             )
@@ -833,6 +851,7 @@ class WakeWordService : Service() {
                 val bauer = MultipartBody.Builder().setType(MultipartBody.FORM)
                     .addFormDataPart("key", key)
                     .addFormDataPart("request_id", requestId)
+                    .addFormDataPart("quelle", if (ausNachfass) "nachfass" else "weckwort")
                 if (e2e) bauer.addFormDataPart("e2e", "1")
                 // Auch der Rueckfall-Weg schickt den Ort mit - sonst waeren die
                 // Empfehlungen ausgerechnet dann ortlos, wenn der Strom klemmt.
@@ -860,6 +879,11 @@ class WakeWordService : Service() {
                     val json = Krypto.auspacken(this, JSONObject(resp.body?.string() ?: "{}"))
                     // Gleiche Regel wie im Strom: Ein "nichts verstanden" aus
                     // dem Nachfass-Fenster bleibt still.
+                    if (json.optString("anlass") == "kein_weckwort") {
+                        fehlalarm = true
+                        meldeStatus("Fehlalarm erkannt (kein \"Jarvis\" gehoert) – ich lausche weiter.")
+                        return
+                    }
                     if (json.optString("anlass") == "nichts_verstanden" && ausNachfass) {
                         meldeStatus("Nichts verstanden (Nachfass) – ich lausche weiter.")
                         return
