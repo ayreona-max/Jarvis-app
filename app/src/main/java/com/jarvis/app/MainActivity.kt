@@ -387,6 +387,30 @@ class MainActivity : AppCompatActivity() {
                 .putBoolean(WakeWordService.PREF_NACHFASS_AN, an).apply()
         }
 
+        // --- v0.45: WhatsApp-Antwortvorschlaege --------------------------------
+        val waSchalter = findViewById<android.widget.CheckBox>(R.id.waSchalter)
+        val waKontakte = findViewById<android.widget.EditText>(R.id.waKontakte)
+        val waZugriff = findViewById<android.widget.Button>(R.id.waZugriff)
+        val waPrefs = getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        waSchalter.isChecked = WhatsAppAssistent.an(this)
+        waKontakte.setText(waPrefs.getString(WhatsAppAssistent.PREF_KONTAKTE, ""))
+        waSchalter.setOnCheckedChangeListener { _, an ->
+            waPrefs.edit().putBoolean(WhatsAppAssistent.PREF_AN, an).apply()
+            if (an && !WhatsAppAssistent.zugriffErteilt(this)) {
+                startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+            }
+        }
+        waKontakte.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                waPrefs.edit().putString(WhatsAppAssistent.PREF_KONTAKTE, s?.toString() ?: "").apply()
+            }
+            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
+            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
+        })
+        waZugriff.setOnClickListener {
+            startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+        }
+
         // --- v0.31: Standort mitschicken -----------------------------------
         // Zwei Schalter muessen an sein: die Android-Berechtigung UND dieser
         // hier. Wird er angetippt, ohne dass die Berechtigung vorliegt, fragt

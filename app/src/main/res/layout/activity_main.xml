@@ -191,6 +191,33 @@
                         android:textSize="13sp"
                         android:textColor="@color/jarvis_text_primary"
                         android:text="Nachfragen ohne Weckwort" />
+
+                    <!-- WhatsApp-Antwortvorschlaege (20.11.2026): nur fuer die
+                         hier genannten Kontakte, nur nach Freigabe. -->
+                    <CheckBox
+                        android:id="@+id/waSchalter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/jarvis_text_primary"
+                        android:text="WhatsApp-Antwortvorschläge" />
+
+                    <EditText
+                        android:id="@+id/waKontakte"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/jarvis_text_primary"
+                        android:textColorHint="@color/jarvis_text_secondary"
+                        android:hint="Kontakte, mit Komma getrennt (Name wie in WhatsApp)"
+                        android:inputType="textMultiLine" />
+
+                    <Button
+                        android:id="@+id/waZugriff"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:text="Benachrichtigungszugriff erteilen" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

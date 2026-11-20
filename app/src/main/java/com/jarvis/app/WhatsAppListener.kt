@@ -1,0 +1,153 @@
+package com.jarvis.app
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.RemoteInput
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+
+/**
+ * Liest eingehende WhatsApp-Einzelchat-Benachrichtigungen ausgewaehlter
+ * Kontakte, holt einen Antwortvorschlag vom Server und zeigt ihn zur
+ * Freigabe (siehe WhatsAppAssistent). Sendet NIE von selbst.
+ */
+class WhatsAppListener : NotificationListenerService() {
+
+    /** Was zum Antworten noetig ist - nur im Speicher, nie auf der Platte. */
+    class Offen(val aktion: Notification.Action, val eingabe: RemoteInput, val vorschlag: String)
+
+    companion object {
+        private const val TAG = "WhatsAppListener"
+        private const val KANAL = "jarvis_whatsapp"
+        const val AKTION_SENDEN = "com.jarvis.app.WA_SENDEN"
+        const val AKTION_VERWERFEN = "com.jarvis.app.WA_VERWERFEN"
+        const val EXTRA_ID = "wa_id"
+
+        val offen = ConcurrentHashMap<Int, Offen>()
+        private val zuletzt = ConcurrentHashMap<String, Long>()
+
+        private val client = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        fun senden(ctx: Context, id: Int): Boolean {
+            val o = offen.remove(id) ?: return false
+            return try {
+                val intent = Intent()
+                val daten = Bundle().apply { putCharSequence(o.eingabe.resultKey, o.vorschlag) }
+                RemoteInput.addResultsToIntent(arrayOf(o.eingabe), intent, daten)
+                o.aktion.actionIntent.send(ctx, 0, intent)
+                true
+            } catch (e: Exception) {
+                Log.w(TAG, "Senden fehlgeschlagen: $e")
+                false
+            }
+        }
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        val s = sbn ?: return
+        if (s.packageName != "com.whatsapp" && s.packageName != "com.whatsapp.w4b") return
+        if (!WhatsAppAssistent.an(this)) return
+        val n = s.notification ?: return
+        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+
+        // Gruppen sind ausgenommen: nur Einzelchats.
+        val stil = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
+        if (stil?.isGroupConversation == true) return
+
+        val extras = n.extras
+        val absender = (extras.getCharSequence(Notification.EXTRA_TITLE) ?: "").toString().trim()
+        val nachricht = (stil?.messages?.lastOrNull()?.text
+            ?: extras.getCharSequence(Notification.EXTRA_TEXT) ?: "").toString().trim()
+        if (absender.isEmpty() || nachricht.isEmpty()) return
+        if (!WhatsAppAssistent.zugelassen(WhatsAppAssistent.kontakte(this), absender)) return
+
+        // WhatsApp meldet dieselbe Nachricht gern mehrfach (Update der
+        // Benachrichtigung): gleiche Nachricht binnen 30 s nur einmal.
+        val schluessel = "$absender|$nachricht"
+        val jetzt = System.currentTimeMillis()
+        val vorher = zuletzt.put(schluessel, jetzt)
+        if (vorher != null && jetzt - vorher < 30_000) return
+        zuletzt.entries.removeIf { jetzt - it.value > 120_000 }
+
+        // Schnellantwort suchen - ohne sie laesst sich nichts senden.
+        val aktion = n.actions?.firstOrNull { !it.remoteInputs.isNullOrEmpty() } ?: return
+        val eingabe = aktion.remoteInputs.first()
+
+        val ctx = applicationContext
+        thread {
+            val vorschlag = try { holeVorschlag(ctx, absender, nachricht) } catch (e: Exception) {
+                Log.w(TAG, "Vorschlag fehlgeschlagen: $e"); ""
+            }
+            if (vorschlag.isBlank()) return@thread
+            val id = absender.lowercase().hashCode()
+            offen[id] = Offen(aktion, eingabe, vorschlag)
+            zeigeVorschlag(ctx, id, absender, nachricht, vorschlag)
+        }
+    }
+
+    private fun holeVorschlag(ctx: Context, absender: String, nachricht: String): String {
+        val prefs = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        val base = (prefs.getString("url", "") ?: "").trim().trimEnd('/')
+        val key = prefs.getString("key", "") ?: ""
+        if (base.isEmpty() || key.isEmpty()) return ""
+        val e2e = Krypto.aktiv(ctx)
+        val body = FormBody.Builder()
+            .add("key", key)
+            .add("absender", if (e2e) Krypto.verschluesselnText(ctx, absender) else absender)
+            .add("text", if (e2e) Krypto.verschluesselnText(ctx, nachricht) else nachricht)
+        if (e2e) body.add("e2e", "1")
+        val req = Request.Builder()
+            .url("$base/whatsapp-vorschlag")
+            .addHeader("ngrok-skip-browser-warning", "true")
+            .post(body.build())
+            .build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) return ""
+            val js = Krypto.auspacken(ctx, JSONObject(resp.body?.string() ?: return ""))
+            return js.optString("vorschlag", "").trim()
+        }
+    }
+
+    private fun zeigeVorschlag(ctx: Context, id: Int, absender: String, nachricht: String, vorschlag: String) {
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(
+                NotificationChannel(KANAL, "WhatsApp-Vorschläge", NotificationManager.IMPORTANCE_HIGH)
+            )
+        }
+        fun knopf(aktion: String, code: Int): PendingIntent = PendingIntent.getBroadcast(
+            ctx, id + code,
+            Intent(aktion).setPackage(ctx.packageName).putExtra(EXTRA_ID, id),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val text = "$absender: $nachricht\n→ $vorschlag"
+        val n = NotificationCompat.Builder(ctx, KANAL)
+            .setSmallIcon(android.R.drawable.ic_dialog_email)
+            .setContentTitle("Antwort an $absender senden?")
+            .setContentText(vorschlag)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .addAction(0, "Senden", knopf(AKTION_SENDEN, 1))
+            .addAction(0, "Verwerfen", knopf(AKTION_VERWERFEN, 2))
+            .setAutoCancel(false)
+            .build()
+        try { nm.notify(id, n) } catch (e: SecurityException) { /* keine Benachrichtigungs-Erlaubnis */ }
+    }
+}
