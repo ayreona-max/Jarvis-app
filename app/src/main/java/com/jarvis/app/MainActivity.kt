@@ -407,6 +407,12 @@ class MainActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
         })
+        findViewById<android.widget.Button>(R.id.waProtokollKnopf).setOnClickListener {
+            val t = findViewById<android.widget.TextView>(R.id.waStatus)
+            t.visibility = if (t.visibility == android.view.View.VISIBLE)
+                android.view.View.GONE else android.view.View.VISIBLE
+            zeigeWaStatus()
+        }
         zeigeWaStatus()
         waZugriff.setOnClickListener {
             startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
@@ -893,8 +899,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun zeigeWaStatus() {
         val t = findViewById<android.widget.TextView>(R.id.waStatus) ?: return
+        val knopf = findViewById<android.widget.Button>(R.id.waProtokollKnopf)
         val zugriff = if (WhatsAppAssistent.zugriffErteilt(this)) "Zugriff: an" else "Zugriff: AUS"
         t.text = zugriff + "\n" + WhatsAppAssistent.statusText(this)
+        val offen = t.visibility == android.view.View.VISIBLE
+        knopf?.text = (if (offen) "WhatsApp-Protokoll ausblenden" else "WhatsApp-Protokoll anzeigen") +
+            " ($zugriff)"
     }
 
     override fun onResume() {
