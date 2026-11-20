@@ -4,7 +4,6 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 
 /** Knoepfe "Senden" / "Verwerfen" der Vorschlags-Benachrichtigung. */
 class WhatsAppAntwortEmpfaenger : BroadcastReceiver() {
@@ -13,16 +12,11 @@ class WhatsAppAntwortEmpfaenger : BroadcastReceiver() {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         when (intent.action) {
             WhatsAppListener.AKTION_SENDEN -> {
-                if (WhatsAppListener.senden(context, id)) {
-                    Toast.makeText(context, "Antwort gesendet", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Antwort nicht mehr möglich – bitte direkt in WhatsApp antworten",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                nm.cancel(id)
+                val fehler = WhatsAppListener.senden(context, id)
+                WhatsAppListener.meldeErgebnis(
+                    context, id,
+                    if (fehler == null) "Antwort abgeschickt." else fehler
+                )
             }
             WhatsAppListener.AKTION_VERWERFEN -> {
                 WhatsAppListener.offen.remove(id)
