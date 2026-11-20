@@ -92,20 +92,24 @@ class WhatsAppListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val s = sbn ?: return
         if (s.packageName != "com.whatsapp" && s.packageName != "com.whatsapp.w4b") return
-        if (!WhatsAppAssistent.an(this)) return
+        if (!WhatsAppAssistent.an(this)) { WhatsAppAssistent.status(this, "WhatsApp-Meldung gesehen, Schalter aus"); return }
         val n = s.notification ?: return
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
 
         // Gruppen sind ausgenommen: nur Einzelchats.
         val stil = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
-        if (stil?.isGroupConversation == true) return
+        if (stil?.isGroupConversation == true) {
+            WhatsAppAssistent.status(this, "Gruppen-Meldung ignoriert"); return
+        }
 
         val extras = n.extras
         val absender = (extras.getCharSequence(Notification.EXTRA_TITLE) ?: "").toString().trim()
         val nachricht = (stil?.messages?.lastOrNull()?.text
             ?: extras.getCharSequence(Notification.EXTRA_TEXT) ?: "").toString().trim()
         if (absender.isEmpty() || nachricht.isEmpty()) return
-        if (!WhatsAppAssistent.zugelassen(WhatsAppAssistent.kontakte(this), absender)) return
+        if (!WhatsAppAssistent.zugelassen(WhatsAppAssistent.kontakte(this), absender)) {
+            WhatsAppAssistent.status(this, "Meldung von \"$absender\": nicht in der Kontaktliste"); return
+        }
 
         // WhatsApp meldet dieselbe Nachricht gern mehrfach (Update der
         // Benachrichtigung): gleiche Nachricht binnen 30 s nur einmal.
@@ -116,15 +120,23 @@ class WhatsAppListener : NotificationListenerService() {
         zuletzt.entries.removeIf { jetzt - it.value > 120_000 }
 
         // Schnellantwort suchen - ohne sie laesst sich nichts senden.
-        val aktion = n.actions?.firstOrNull { !it.remoteInputs.isNullOrEmpty() } ?: return
+        val aktion = n.actions?.firstOrNull { !it.remoteInputs.isNullOrEmpty() }
+        if (aktion == null) {
+            WhatsAppAssistent.status(this, "\"$absender\": WhatsApp bietet keine Schnellantwort an"); return
+        }
+        WhatsAppAssistent.status(this, "\"$absender\": erkannt, hole Vorschlag ...")
         val eingabe = aktion.remoteInputs.first()
 
         val ctx = applicationContext
         thread {
             val vorschlag = try { holeVorschlag(ctx, absender, nachricht) } catch (e: Exception) {
-                Log.w(TAG, "Vorschlag fehlgeschlagen: $e"); ""
+                Log.w(TAG, "Vorschlag fehlgeschlagen: $e")
+                WhatsAppAssistent.status(ctx, "Vorschlag-Abruf fehlgeschlagen: ${e.javaClass.simpleName}"); ""
             }
-            if (vorschlag.isBlank()) return@thread
+            if (vorschlag.isBlank()) {
+                WhatsAppAssistent.status(ctx, "kein Vorschlag erhalten (Server/Schluessel/Adresse?)"); return@thread
+            }
+            WhatsAppAssistent.status(ctx, "Vorschlag da, Benachrichtigung gezeigt")
             val id = absender.lowercase().hashCode()
             offen[id] = Offen(aktion, eingabe, vorschlag)
             zeigeVorschlag(ctx, id, absender, nachricht, vorschlag)

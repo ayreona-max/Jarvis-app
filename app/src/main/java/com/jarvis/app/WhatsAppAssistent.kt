@@ -33,6 +33,21 @@ object WhatsAppAssistent {
     fun zugelassen(liste: List<String>, name: String): Boolean =
         name.isNotBlank() && liste.any { it.equals(name.trim(), ignoreCase = true) }
 
+    /** Letzte Ereignisse (neueste oben), damit man in der App sieht, an
+     *  welchem Schritt es haengt - ohne Android-Log. Nur Namen/Status, nie
+     *  der Nachrichtentext. */
+    fun status(ctx: Context, text: String) {
+        try {
+            val zeit = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.GERMANY)
+                .format(java.util.Date())
+            val p = prefs(ctx)
+            val alt = (p.getString("wa_status", "") ?: "").lines().filter { it.isNotBlank() }.take(7)
+            p.edit().putString("wa_status", (listOf("$zeit $text") + alt).joinToString("\n")).apply()
+        } catch (_: Exception) { }
+    }
+
+    fun statusText(ctx: Context): String = prefs(ctx).getString("wa_status", "") ?: ""
+
     fun zugriffErteilt(ctx: Context): Boolean =
         NotificationManagerCompat.getEnabledListenerPackages(ctx).contains(ctx.packageName)
 }
