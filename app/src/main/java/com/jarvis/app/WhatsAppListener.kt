@@ -46,18 +46,46 @@ class WhatsAppListener : NotificationListenerService() {
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        fun senden(ctx: Context, id: Int): Boolean {
-            val o = offen.remove(id) ?: return false
+        /** null = abgeschickt, sonst der Grund, warum es nicht ging. */
+        fun senden(ctx: Context, id: Int): String? {
+            val o = offen.remove(id)
+                ?: return "Die App wurde zwischendurch beendet - bitte direkt in WhatsApp antworten."
             return try {
                 val intent = Intent()
                 val daten = Bundle().apply { putCharSequence(o.eingabe.resultKey, o.vorschlag) }
                 RemoteInput.addResultsToIntent(arrayOf(o.eingabe), intent, daten)
+                if (Build.VERSION.SDK_INT >= 28) {
+                    RemoteInput.setResultsSource(intent, RemoteInput.SOURCE_FREE_FORM_INPUT)
+                }
                 o.aktion.actionIntent.send(ctx, 0, intent)
-                true
+                null
+            } catch (e: PendingIntent.CanceledException) {
+                Log.w(TAG, "Senden: Antwort-Knopf von WhatsApp nicht mehr gueltig: $e")
+                "WhatsApp hat die Nachricht schon weggeraeumt (Chat geoeffnet?) - bitte direkt antworten."
             } catch (e: Exception) {
                 Log.w(TAG, "Senden fehlgeschlagen: $e")
-                false
+                "Senden ging nicht: ${e.javaClass.simpleName}"
             }
+        }
+
+        /** Rueckmeldung als Benachrichtigung statt Toast - Toasts aus dem
+         *  Hintergrund unterdrueckt z. B. Xiaomi gern. */
+        fun meldeErgebnis(ctx: Context, id: Int, text: String) {
+            val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(
+                    NotificationChannel(KANAL, "WhatsApp-Vorschläge", NotificationManager.IMPORTANCE_HIGH)
+                )
+            }
+            val n = NotificationCompat.Builder(ctx, KANAL)
+                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setContentTitle("Jarvis")
+                .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setTimeoutAfter(10_000)
+                .setAutoCancel(true)
+                .build()
+            try { nm.notify(id, n) } catch (e: SecurityException) { }
         }
     }
 
