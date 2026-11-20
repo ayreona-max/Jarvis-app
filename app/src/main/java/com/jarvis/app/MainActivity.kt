@@ -407,6 +407,7 @@ class MainActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
         })
+        zeigeWaStatus()
         waZugriff.setOnClickListener {
             startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
         }
@@ -890,8 +891,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun zeigeWaStatus() {
+        val t = findViewById<android.widget.TextView>(R.id.waStatus) ?: return
+        val zugriff = if (WhatsAppAssistent.zugriffErteilt(this)) "Zugriff: an" else "Zugriff: AUS"
+        t.text = zugriff + "\n" + WhatsAppAssistent.statusText(this)
+    }
+
     override fun onResume() {
         super.onResume()
+        zeigeWaStatus()
         // Als ALLERERSTES: die App-Sperre. Alles danach (Postfach-Inhalte,
         // Statuszeile, Standort) darf erst sichtbar werden, wenn die Pruefung
         // bestanden ist - sonst blitzen sensible Inhalte kurz auf, bevor der
