@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -37,6 +39,19 @@ class WhatsAppListener : NotificationListenerService() {
         const val AKTION_SENDEN = "com.jarvis.app.WA_SENDEN"
         const val AKTION_VERWERFEN = "com.jarvis.app.WA_VERWERFEN"
         const val EXTRA_ID = "wa_id"
+
+        /** So lange wartet Jarvis, bevor er einen Vorschlag macht (2,5 Min.):
+         *  Antwortet Frank vorher selbst oder oeffnet den Chat, verschwindet
+         *  die WhatsApp-Benachrichtigung und es kommt gar kein Vorschlag. */
+        const val WARTEZEIT_MS = 150_000L
+
+        class Wartend(
+            val absender: String, val nachricht: String,
+            val aktion: Notification.Action, val eingabe: RemoteInput,
+        )
+
+        /** Auf die Wartezeit wartende Nachrichten, Schluessel = Benachrichtigungs-Key. */
+        val wartend = ConcurrentHashMap<String, Wartend>()
 
         val offen = ConcurrentHashMap<Int, Offen>()
         private val zuletzt = ConcurrentHashMap<String, Long>()
@@ -89,6 +104,15 @@ class WhatsAppListener : NotificationListenerService() {
         }
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        val s = sbn ?: return
+        if (wartend.remove(s.key) != null) {
+            WhatsAppAssistent.status(this, "WhatsApp-Meldung weg (selbst beantwortet?) - kein Vorschlag")
+        }
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val s = sbn ?: return
         if (s.packageName != "com.whatsapp" && s.packageName != "com.whatsapp.w4b") return
@@ -124,10 +148,32 @@ class WhatsAppListener : NotificationListenerService() {
         if (aktion == null) {
             WhatsAppAssistent.status(this, "\"$absender\": WhatsApp bietet keine Schnellantwort an"); return
         }
-        WhatsAppAssistent.status(this, "\"$absender\": erkannt, hole Vorschlag ...")
         val eingabe = aktion.remoteInputs.first()
 
+        // Neue Nachricht im selben Chat waehrend der Wartezeit: Inhalt
+        // aktualisieren, die Uhr laeuft weiter.
+        val schon = wartend.put(s.key, Wartend(absender, nachricht, aktion, eingabe)) != null
+        if (schon) {
+            WhatsAppAssistent.status(this, "\"$absender\": neue Nachricht, Wartezeit laeuft weiter")
+            return
+        }
+        WhatsAppAssistent.status(this, "\"$absender\": erkannt, warte ${WARTEZEIT_MS / 60_000.0} Min. auf deine Antwort")
+        val key = s.key
+        handler.postDelayed({ nachWartezeit(key) }, WARTEZEIT_MS)
+    }
+
+    /** Wartezeit um: nur wenn die WhatsApp-Meldung noch steht (also nicht
+     *  beantwortet/geoeffnet), wird ein Vorschlag geholt. */
+    private fun nachWartezeit(key: String) {
+        val w = wartend.remove(key) ?: return
+        val nochDa = try { activeNotifications?.any { it.key == key } ?: true } catch (e: Exception) { true }
+        if (!nochDa) {
+            WhatsAppAssistent.status(this, "\"${w.absender}\": Meldung weg, kein Vorschlag"); return
+        }
+        WhatsAppAssistent.status(this, "\"${w.absender}\": noch unbeantwortet, hole Vorschlag ...")
         val ctx = applicationContext
+        val absender = w.absender
+        val nachricht = w.nachricht
         thread {
             val vorschlag = try { holeVorschlag(ctx, absender, nachricht) } catch (e: Exception) {
                 Log.w(TAG, "Vorschlag fehlgeschlagen: $e")
@@ -138,7 +184,7 @@ class WhatsAppListener : NotificationListenerService() {
             }
             WhatsAppAssistent.status(ctx, "Vorschlag da, Benachrichtigung gezeigt")
             val id = absender.lowercase().hashCode()
-            offen[id] = Offen(aktion, eingabe, vorschlag)
+            offen[id] = Offen(w.aktion, w.eingabe, vorschlag)
             zeigeVorschlag(ctx, id, absender, nachricht, vorschlag)
         }
     }
