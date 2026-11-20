@@ -163,7 +163,12 @@ class WhatsAppListener : NotificationListenerService() {
         }
         fun knopf(aktion: String, code: Int): PendingIntent = PendingIntent.getBroadcast(
             ctx, id + code,
-            Intent(aktion).setPackage(ctx.packageName).putExtra(EXTRA_ID, id),
+            // Ausdruecklich an den Empfaenger adressieren (Komponente): Der
+            // Empfaenger hat im Manifest keinen Intent-Filter, ein Broadcast
+            // nur mit Aktion+Paket wuerde ihn nie erreichen - "Senden" blieb
+            // deshalb lautlos wirkungslos (20.11.2026).
+            Intent(ctx, WhatsAppAntwortEmpfaenger::class.java)
+                .setAction(aktion).putExtra(EXTRA_ID, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val text = "$absender: $nachricht\n→ $vorschlag"
