@@ -113,6 +113,25 @@
             android:exported="false"
             android:foregroundServiceType="microphone|location" />
 
+        <!-- WhatsApp-Antwortvorschlaege (20.11.2026): liest WhatsApp-
+             Benachrichtigungen AUSGEWAEHLTER Kontakte, schlaegt eine Antwort
+             vor und sendet erst nach Freigabe. Braucht den
+             "Benachrichtigungszugriff", den Frank in den Android-
+             Einstellungen selbst erteilt. -->
+        <service
+            android:name=".WhatsAppListener"
+            android:exported="true"
+            android:label="Jarvis WhatsApp-Vorschläge"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".WhatsAppAntwortEmpfaenger"
+            android:exported="false" />
+
         <!-- Faehrt das "Hey Jarvis"-Lauschen nach Handy-Neustart und nach
              einem App-Update von selbst wieder hoch. Ein App-Update beendete
              den Dienst bisher stillschweigend. -->
